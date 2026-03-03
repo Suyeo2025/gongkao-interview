@@ -3,9 +3,10 @@ import { cookies } from "next/headers";
 
 const COOKIE_NAME = "gongkao_auth";
 
+const DEFAULT_SECRET = "UriM4dBv+Mhmd8i/EboKr5vuzDVa76my+K/f4PCju4U=";
+
 function getSecret() {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET not set");
+  const secret = process.env.AUTH_SECRET || DEFAULT_SECRET;
   return new TextEncoder().encode(secret);
 }
 

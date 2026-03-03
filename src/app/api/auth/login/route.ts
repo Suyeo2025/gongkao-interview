@@ -4,15 +4,8 @@ export async function POST(req: Request) {
   try {
     const { username, password } = await req.json();
 
-    const validUsername = process.env.AUTH_USERNAME;
-    const validPassword = process.env.AUTH_PASSWORD;
-
-    if (!validUsername || !validPassword) {
-      return Response.json(
-        { error: "服务器未配置认证信息" },
-        { status: 500 }
-      );
-    }
+    const validUsername = process.env.AUTH_USERNAME || "yysuyeo";
+    const validPassword = process.env.AUTH_PASSWORD || "jiayoubiguo2026";
 
     if (username !== validUsername || password !== validPassword) {
       return Response.json(
