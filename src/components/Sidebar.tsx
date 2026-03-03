@@ -81,40 +81,40 @@ export function Sidebar({
   return (
     <div className="h-full flex flex-col bg-zinc-50 border-r border-zinc-200">
       {/* Header */}
-      <div className="p-4 border-b border-zinc-200">
-        <h2 className="font-semibold text-sm text-zinc-700 mb-3">
+      <div className="p-3 sm:p-4 border-b border-zinc-200">
+        <h2 className="font-semibold text-sm text-zinc-700 mb-2.5 sm:mb-3">
           历史记录
           <span className="text-zinc-400 font-normal ml-1.5">({stats.total})</span>
         </h2>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索题目..."
-            className="pl-8 h-8 text-xs bg-white"
+            className="pl-9 h-10 text-sm bg-white"
           />
           {searchQuery && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
               onClick={() => setSearchQuery("")}
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
 
       {/* Filter tabs */}
-      <div className="px-4 py-2 flex gap-1.5 flex-wrap border-b border-zinc-200">
+      <div className="px-3 sm:px-4 py-2 flex gap-1.5 flex-wrap border-b border-zinc-200">
         <Button
           variant={filterCategory === "all" ? "default" : "ghost"}
           size="sm"
-          className="h-6 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => setFilterCategory("all")}
         >
           全部
@@ -122,10 +122,10 @@ export function Sidebar({
         <Button
           variant={filterCategory === "favorites" ? "default" : "ghost"}
           size="sm"
-          className="h-6 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => setFilterCategory("favorites")}
         >
-          <Star className="h-3 w-3 mr-1" />
+          <Star className="h-3.5 w-3.5 mr-1" />
           收藏 ({stats.favorites})
         </Button>
       </div>
@@ -144,37 +144,37 @@ export function Sidebar({
                 <div key={cat} className="mb-1">
                   <button
                     onClick={() => toggleCategory(cat)}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-zinc-100/60 transition-colors"
+                    className="flex items-center gap-2 w-full px-2.5 py-2.5 rounded-lg hover:bg-zinc-100/60 transition-colors min-h-[44px]"
                   >
                     {isExpanded ? (
-                      <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+                      <ChevronDown className="h-4 w-4 text-zinc-400 shrink-0" />
                     ) : (
-                      <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
+                      <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
                     )}
-                    <FolderOpen className="h-3.5 w-3.5 text-zinc-500" />
-                    <span className="text-xs font-medium text-zinc-700">{cat}</span>
-                    <Badge variant="outline" className={`text-[10px] ml-auto px-1.5 py-0 ${colors}`}>
+                    <FolderOpen className="h-4 w-4 text-zinc-500 shrink-0" />
+                    <span className="text-sm font-medium text-zinc-700">{cat}</span>
+                    <Badge variant="outline" className={`text-xs ml-auto px-1.5 py-0 ${colors}`}>
                       {items.length}
                     </Badge>
                   </button>
 
                   {isExpanded && (
-                    <div className="ml-5 space-y-0.5 mt-0.5">
+                    <div className="ml-4 space-y-0.5 mt-0.5">
                       {items.map((pair) => (
                         <button
                           key={pair.question.id}
                           onClick={() => onSelect(pair.question.id)}
-                          className={`flex items-start gap-2 w-full text-left px-2 py-2 rounded text-xs transition-colors ${
+                          className={`flex items-start gap-2 w-full text-left px-3 py-3 rounded-lg text-sm transition-colors min-h-[44px] ${
                             selectedId === pair.question.id
                               ? "bg-violet-50 text-violet-700 border border-violet-200/60"
                               : "hover:bg-zinc-100/60 text-zinc-600"
                           }`}
                         >
                           {pair.question.isFavorite && (
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0 mt-0.5" />
+                            <Star className="h-4 w-4 fill-amber-400 text-amber-400 shrink-0 mt-0.5" />
                           )}
                           <span className="line-clamp-2 leading-relaxed">
-                            <span className="text-zinc-400 font-mono mr-1">{pair.question.id}</span>
+                            <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
                             {pair.question.content.slice(0, 50)}
                             {pair.question.content.length > 50 ? "..." : ""}
                           </span>
@@ -191,17 +191,17 @@ export function Sidebar({
                 <button
                   key={pair.question.id}
                   onClick={() => onSelect(pair.question.id)}
-                  className={`flex items-start gap-2 w-full text-left px-2 py-2 rounded text-xs transition-colors ${
+                  className={`flex items-start gap-2 w-full text-left px-3 py-3 rounded-lg text-sm transition-colors min-h-[44px] ${
                     selectedId === pair.question.id
                       ? "bg-violet-50 text-violet-700 border border-violet-200/60"
                       : "hover:bg-zinc-100/60 text-zinc-600"
                   }`}
                 >
                   {pair.question.isFavorite && (
-                    <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0 mt-0.5" />
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400 shrink-0 mt-0.5" />
                   )}
                   <span className="line-clamp-2 leading-relaxed">
-                    <span className="text-zinc-400 font-mono mr-1">{pair.question.id}</span>
+                    <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
                     {pair.question.content.slice(0, 50)}
                     {pair.question.content.length > 50 ? "..." : ""}
                   </span>
@@ -211,7 +211,7 @@ export function Sidebar({
           )}
 
           {filtered.length === 0 && (
-            <div className="text-center py-8 text-xs text-zinc-400">
+            <div className="text-center py-8 text-sm text-zinc-400">
               暂无记录
             </div>
           )}

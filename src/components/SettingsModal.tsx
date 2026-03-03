@@ -136,12 +136,12 @@ export function SettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg">模型设置</DialogTitle>
+          <DialogTitle className="text-base sm:text-lg">模型设置</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-2">
+        <div className="space-y-4 sm:space-y-6 py-1 sm:py-2">
           {/* API Key */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Gemini API Key</Label>
@@ -177,7 +177,7 @@ export function SettingsModal({
                 variant="outline"
                 size="icon"
                 onClick={() => setShowKey(!showKey)}
-                className="shrink-0"
+                className="shrink-0 h-10 w-10"
               >
                 {showKey ? (
                   <EyeOff className="h-4 w-4" />
@@ -218,14 +218,14 @@ export function SettingsModal({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-xs gap-1 text-zinc-500"
+                  className="h-8 text-xs gap-1 text-zinc-500"
                   disabled={modelsLoading}
                   onClick={() => {
                     lastFetchedKeyRef.current = "";
                     fetchModels(settings.geminiApiKey);
                   }}
                 >
-                  <RefreshCw className={`h-3 w-3 ${modelsLoading ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`h-4 w-4 ${modelsLoading ? "animate-spin" : ""}`} />
                   刷新
                 </Button>
               )}
@@ -297,9 +297,9 @@ export function SettingsModal({
             <Button
               variant="outline"
               onClick={onReset}
-              className="gap-1.5 text-sm"
+              className="gap-1.5 text-sm h-10"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <RotateCcw className="h-4 w-4" />
               恢复默认参数
             </Button>
           </div>

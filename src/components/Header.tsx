@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings2, Download, Upload, LogOut } from "lucide-react";
+import { Settings2, Download, Upload, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportData, importData } from "@/lib/storage";
 import { useCallback, useRef } from "react";
@@ -9,9 +9,10 @@ import { useRouter } from "next/navigation";
 interface HeaderProps {
   onOpenSettings: () => void;
   onDataChange?: () => void;
+  onToggleSidebar?: () => void;
 }
 
-export function Header({ onOpenSettings, onDataChange }: HeaderProps) {
+export function Header({ onOpenSettings, onDataChange, onToggleSidebar }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -55,53 +56,63 @@ export function Header({ onOpenSettings, onDataChange }: HeaderProps) {
   );
 
   return (
-    <header className="h-14 bg-white/80 backdrop-blur-xl px-6 flex items-center justify-between shrink-0 border-b border-zinc-100">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-sm">
-          <span className="text-white text-sm font-bold">考</span>
+    <header className="h-12 sm:h-14 bg-white/80 backdrop-blur-xl px-2 sm:px-4 md:px-6 flex items-center justify-between shrink-0 border-b border-zinc-100">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Mobile hamburger menu */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden h-10 w-10 text-zinc-600"
+          onClick={onToggleSidebar}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-sm">
+          <span className="text-white text-xs sm:text-sm font-bold">考</span>
         </div>
         <div>
-          <h1 className="text-sm font-semibold text-zinc-800 tracking-tight">公考面试模拟助手</h1>
-          <p className="text-[10px] text-zinc-400">AI 驱动 · 五板块结构化作答</p>
+          <h1 className="text-xs sm:text-sm font-semibold text-zinc-800 tracking-tight">公考面试模拟助手</h1>
+          <p className="text-[10px] text-zinc-400 hidden sm:block">AI 驱动 · 五板块结构化作答</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1">
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={handleExport}
-          className="gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 rounded-lg"
+          className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <Download className="h-3.5 w-3.5" />
-          导出
+          <Download className="h-4 w-4" />
+          <span className="sr-only">导出</span>
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={handleImport}
-          className="gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 rounded-lg"
+          className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <Upload className="h-3.5 w-3.5" />
-          导入
+          <Upload className="h-4 w-4" />
+          <span className="sr-only">导入</span>
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={onOpenSettings}
-          className="gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 rounded-lg"
+          className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <Settings2 className="h-3.5 w-3.5" />
-          设置
+          <Settings2 className="h-4 w-4" />
+          <span className="sr-only">设置</span>
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={handleLogout}
-          className="gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 rounded-lg"
+          className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <LogOut className="h-3.5 w-3.5" />
-          退出
+          <LogOut className="h-4 w-4" />
+          <span className="sr-only">退出</span>
         </Button>
         <input
           ref={fileInputRef}

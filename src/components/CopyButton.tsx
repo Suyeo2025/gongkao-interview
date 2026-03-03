@@ -41,14 +41,18 @@ export function CopyButton({
       variant={variant}
       size={size}
       onClick={handleCopy}
-      className="gap-1.5 text-xs rounded-lg hover:text-violet-600 hover:border-violet-200"
+      className="gap-1.5 text-xs rounded-lg hover:text-violet-600 hover:border-violet-200 h-9 px-2.5 sm:px-3"
     >
       {copied ? (
-        <Check className="h-3.5 w-3.5 text-green-600" />
+        <Check className="h-4 w-4 text-green-600" />
       ) : (
-        <Copy className="h-3.5 w-3.5" />
+        <Copy className="h-4 w-4" />
       )}
-      {label && <span>{copied ? "已复制" : label}</span>}
+      {label ? (
+        <span className="hidden sm:inline">{copied ? "已复制" : label}</span>
+      ) : (
+        copied && <span className="hidden sm:inline text-green-600">已复制</span>
+      )}
     </Button>
   );
 }

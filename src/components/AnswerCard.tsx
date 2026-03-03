@@ -39,33 +39,33 @@ export function AnswerCard({
   const wordCount = isStreaming ? streamText.length : (answer.metadata?.wordCount ?? displayRaw.length);
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200/40 shadow-card overflow-hidden">
+    <div className="bg-white rounded-xl sm:rounded-2xl border border-zinc-200/40 shadow-card overflow-hidden">
 
-      {/* ── 题目区 ── */}
-      <div className="px-6 py-5 border-b border-zinc-100/60">
-        {/* 标签行 */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
+      {/* Question area */}
+      <div className="px-3 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 border-b border-zinc-100/60">
+        {/* Tags row */}
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
           <span className="text-xs font-mono text-zinc-400">{question.id}</span>
           {answer.metadata?.category && (
             <CategoryBadge category={answer.metadata.category} size="sm" />
           )}
           {answer.metadata?.difficulty && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-zinc-200 text-zinc-500">
+            <Badge variant="outline" className="text-xs px-1.5 py-0 border-zinc-200 text-zinc-500">
               {answer.metadata.difficulty}
             </Badge>
           )}
         </div>
 
-        {/* 题目内容 */}
+        {/* Question content */}
         <p className="text-sm text-zinc-800 leading-relaxed font-medium">
           {question.content}
         </p>
 
-        {/* 模型徽章 + 状态 — 始终可见 */}
-        <div className="flex items-center gap-3 mt-3 text-xs text-zinc-400">
+        {/* Model badge + status */}
+        <div className="flex items-center gap-2 sm:gap-3 mt-2.5 sm:mt-3 text-xs text-zinc-400 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-violet-50 text-violet-600 font-medium">
             <Sparkles className="h-3 w-3" />
-            {answer.modelUsed}
+            <span className="truncate max-w-[120px] sm:max-w-none">{answer.modelUsed}</span>
           </span>
 
           {isStreaming ? (
@@ -98,10 +98,10 @@ export function AnswerCard({
         </div>
       </div>
 
-      {/* ── 得分点高亮区 ── */}
+      {/* Key points highlight */}
       {answer.metadata?.keyPoints && answer.metadata.keyPoints.length > 0 && !isStreaming && (
-        <div className="px-6 py-3 bg-violet-50/50 border-b border-zinc-100/60">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="px-3 py-2.5 sm:px-5 sm:py-3 md:px-6 bg-violet-50/50 border-b border-zinc-100/60">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <span className="text-xs font-semibold text-violet-700">得分点</span>
             {answer.metadata.keyPoints.map((point, i) => (
               <span
@@ -115,10 +115,9 @@ export function AnswerCard({
         </div>
       )}
 
-      {/* ── 正文区 ── */}
-      <div className="p-6">
+      {/* Content area */}
+      <div className="p-3 sm:p-5 md:p-6">
         {isStreaming || !hasSections ? (
-          /* 流式输出 or 原始 Markdown 回退 */
           <div className="relative">
             <MarkdownRenderer content={displayRaw} />
             {isStreaming && (
@@ -126,8 +125,7 @@ export function AnswerCard({
             )}
           </div>
         ) : (
-          /* 五板块结构化展示 */
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <AnswerSection
               title="考生作答（现场口吻）"
               content={answer.sections.answer}
@@ -172,38 +170,38 @@ export function AnswerCard({
         )}
       </div>
 
-      {/* ── 底部操作栏 ── */}
+      {/* Bottom action bar */}
       {!isStreaming && (
-        <div className="px-6 py-4 border-t border-zinc-100/60 bg-zinc-50/30 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="px-3 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 border-t border-zinc-100/60 bg-zinc-50/30 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {onToggleFavorite && (
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs rounded-lg"
+                className="gap-1.5 text-xs rounded-lg h-9 sm:h-10 px-2.5 sm:px-3"
                 onClick={() => onToggleFavorite(question.id)}
               >
                 <Star
-                  className={`h-3.5 w-3.5 ${question.isFavorite ? "fill-amber-400 text-amber-400" : "text-zinc-400"}`}
+                  className={`h-4 w-4 ${question.isFavorite ? "fill-amber-400 text-amber-400" : "text-zinc-400"}`}
                 />
-                {question.isFavorite ? "已收藏" : "收藏"}
+                <span className="hidden sm:inline">{question.isFavorite ? "已收藏" : "收藏"}</span>
               </Button>
             )}
             {onDelete && (
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs rounded-lg text-zinc-500 hover:text-red-600 hover:border-red-200"
+                className="gap-1.5 text-xs rounded-lg h-9 sm:h-10 px-2.5 sm:px-3 text-zinc-500 hover:text-red-600 hover:border-red-200"
                 onClick={() => onDelete(question.id)}
               >
-                <Trash2 className="h-3.5 w-3.5" />
-                删除
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">删除</span>
               </Button>
             )}
           </div>
           <CopyButton
             text={displayRaw}
-            label="复制全部答案"
+            label="复制全部"
             variant="outline"
           />
         </div>
