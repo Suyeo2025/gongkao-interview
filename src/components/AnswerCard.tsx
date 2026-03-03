@@ -125,46 +125,36 @@ export function AnswerCard({
             )}
           </div>
         ) : (
-          <div className="space-y-3 sm:space-y-4">
+          <div>
             <AnswerSection
               title="考生作答（现场口吻）"
               content={answer.sections.answer}
               defaultOpen={true}
               icon="🎙️"
-              accentColor="border-l-violet-500"
-              bgColor="bg-white"
             />
             <AnswerSection
               title="作答复盘（10秒速览）"
               content={answer.sections.review}
               defaultOpen={true}
               icon="📊"
-              accentColor="border-l-emerald-500"
-              bgColor="bg-emerald-50/30"
             />
             <AnswerSection
               title="通用模板（可复用）"
               content={answer.sections.template}
               defaultOpen={true}
               icon="📋"
-              accentColor="border-l-blue-500"
-              bgColor="bg-blue-50/30"
             />
             <AnswerSection
               title="踩坑提醒"
               content={answer.sections.pitfalls}
               defaultOpen={true}
               icon="⚠️"
-              accentColor="border-l-amber-500"
-              bgColor="bg-amber-50/30"
             />
             <AnswerSection
               title="注意事项"
               content={answer.sections.notes}
               defaultOpen={true}
               icon="📌"
-              accentColor="border-l-rose-500"
-              bgColor="bg-rose-50/30"
             />
           </div>
         )}

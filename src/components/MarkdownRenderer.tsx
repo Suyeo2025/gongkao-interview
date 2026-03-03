@@ -15,13 +15,13 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h1 className="text-lg font-bold mt-4 mb-2 text-zinc-800">{children}</h1>
+            <h1 className="text-base font-bold mt-4 mb-2 text-zinc-800">{children}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-base font-bold mt-3 mb-2 text-zinc-800">{children}</h2>
+            <h2 className="text-sm font-bold mt-3 mb-1.5 text-zinc-800">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-sm font-bold mt-2 mb-1 text-zinc-700">{children}</h3>
+            <h3 className="text-sm font-semibold mt-2 mb-1 text-zinc-700">{children}</h3>
           ),
           p: ({ children }) => (
             <p className="my-1.5 leading-relaxed text-zinc-700 text-sm">{children}</p>
@@ -36,7 +36,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
             <li className="text-zinc-700 leading-relaxed">{children}</li>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="border-l-3 border-violet-300 pl-3 my-2 text-zinc-600 italic">
+            <blockquote className="border-l-2 border-zinc-200 pl-3 my-2 text-zinc-500 text-sm">
               {children}
             </blockquote>
           ),
@@ -44,7 +44,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
             const isInline = !className;
             if (isInline) {
               return (
-                <code className="bg-zinc-100 text-violet-700 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                <code className="bg-zinc-100 text-zinc-700 px-1 py-0.5 rounded text-xs font-mono" {...props}>
                   {children}
                 </code>
               );
@@ -76,9 +76,9 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
             <strong className="font-semibold text-zinc-800">{children}</strong>
           ),
           em: ({ children }) => (
-            <em className="text-violet-600">{children}</em>
+            <em className="text-zinc-600 not-italic font-medium">{children}</em>
           ),
-          hr: () => <hr className="my-3 border-zinc-200" />,
+          hr: () => <hr className="my-3 border-zinc-100" />,
         }}
       />
     </div>

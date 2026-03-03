@@ -10,7 +10,6 @@ import { useSettings } from "@/hooks/useSettings";
 import { useQuestions } from "@/hooks/useQuestions";
 import { useGenerate } from "@/hooks/useGenerate";
 import { parseSections, parseMetadata, stripMetaBlock } from "@/lib/parser";
-import { generateId } from "@/lib/storage";
 import { QAPair, Question, Answer } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
