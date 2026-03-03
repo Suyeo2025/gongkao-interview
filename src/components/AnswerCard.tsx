@@ -6,7 +6,7 @@ import { CopyButton } from "./CopyButton";
 import { AnswerSection } from "./AnswerSection";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
-import { Star, Trash2, Clock, FileText, Sparkles } from "lucide-react";
+import { Icon } from "./Icon";
 import { Button } from "@/components/ui/button";
 import { stripMetaBlock } from "@/lib/parser";
 
@@ -63,8 +63,8 @@ export function AnswerCard({
 
         {/* Model badge + status */}
         <div className="flex items-center gap-2 sm:gap-3 mt-2.5 sm:mt-3 text-xs text-zinc-400 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-violet-50 text-violet-600 font-medium">
-            <Sparkles className="h-3 w-3" />
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium">
+            <Icon name="auto_awesome" size={14} />
             <span className="truncate max-w-[120px] sm:max-w-none">{answer.modelUsed}</span>
           </span>
 
@@ -84,11 +84,11 @@ export function AnswerCard({
               {answer.metadata && (
                 <>
                   <span className="flex items-center gap-1">
-                    <FileText className="h-3 w-3" />
+                    <Icon name="description" size={14} />
                     {answer.metadata.wordCount} 字
                   </span>
                   <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
+                    <Icon name="schedule" size={14} />
                     {answer.metadata.estimatedTime}
                   </span>
                 </>
@@ -100,16 +100,22 @@ export function AnswerCard({
 
       {/* Key points highlight */}
       {answer.metadata?.keyPoints && answer.metadata.keyPoints.length > 0 && !isStreaming && (
-        <div className="px-3 py-2.5 sm:px-5 sm:py-3 md:px-6 bg-violet-50/50 border-b border-zinc-100/60">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-violet-700">得分点</span>
+        <div className="px-3 py-3 sm:px-5 sm:py-4 md:px-6 bg-gradient-to-r from-amber-50/80 to-amber-50/30 border-b border-amber-100/40">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="emoji_events" size={16} className="text-amber-600" />
+            <span className="text-xs font-semibold text-amber-800 tracking-wide">核心得分点</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {answer.metadata.keyPoints.map((point, i) => (
-              <span
+              <div
                 key={i}
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/70 border border-amber-100/60"
               >
-                {point}
-              </span>
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {i + 1}
+                </span>
+                <span className="text-xs text-stone-700 font-medium leading-tight">{point}</span>
+              </div>
             ))}
           </div>
         </div>
@@ -121,7 +127,7 @@ export function AnswerCard({
           <div className="relative">
             <MarkdownRenderer content={displayRaw} />
             {isStreaming && (
-              <span className="inline-block w-2.5 h-5 bg-gradient-to-t from-violet-500 to-violet-400 animate-pulse ml-1 align-text-bottom rounded-sm" />
+              <span className="inline-block w-2.5 h-5 bg-gradient-to-t from-amber-500 to-amber-400 animate-pulse ml-1 align-text-bottom rounded-sm" />
             )}
           </div>
         ) : (
@@ -171,8 +177,11 @@ export function AnswerCard({
                 className="gap-1.5 text-xs rounded-lg h-9 sm:h-10 px-2.5 sm:px-3"
                 onClick={() => onToggleFavorite(question.id)}
               >
-                <Star
-                  className={`h-4 w-4 ${question.isFavorite ? "fill-amber-400 text-amber-400" : "text-zinc-400"}`}
+                <Icon
+                  name="star"
+                  size={18}
+                  fill={question.isFavorite}
+                  className={question.isFavorite ? "text-amber-400" : "text-zinc-400"}
                 />
                 <span className="hidden sm:inline">{question.isFavorite ? "已收藏" : "收藏"}</span>
               </Button>
@@ -184,7 +193,7 @@ export function AnswerCard({
                 className="gap-1.5 text-xs rounded-lg h-9 sm:h-10 px-2.5 sm:px-3 text-zinc-500 hover:text-red-600 hover:border-red-200"
                 onClick={() => onDelete(question.id)}
               >
-                <Trash2 className="h-4 w-4" />
+                <Icon name="delete" size={18} />
                 <span className="hidden sm:inline">删除</span>
               </Button>
             )}

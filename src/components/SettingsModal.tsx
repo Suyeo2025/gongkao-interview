@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Eye, EyeOff, RotateCcw, Loader2, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Icon } from "./Icon";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 interface ModelInfo {
@@ -87,7 +87,6 @@ export function SettingsModal({
           (m: ModelInfo) => m.id === settings.modelName
         );
         if (!currentValid) {
-          // Pick gemini-2.5-flash if available, otherwise first
           const preferred = data.models.find((m: ModelInfo) =>
             m.id.includes("2.5-flash") && !m.id.includes("lite")
           );
@@ -163,13 +162,13 @@ export function SettingsModal({
                 {/* Key validation indicator */}
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
                   {modelsLoading && (
-                    <Loader2 className="h-4 w-4 text-zinc-400 animate-spin" />
+                    <Icon name="progress_activity" size={16} className="text-zinc-400 animate-spin" />
                   )}
                   {!modelsLoading && keyValid === true && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <Icon name="check_circle" size={16} className="text-green-500" />
                   )}
                   {!modelsLoading && keyValid === false && (
-                    <XCircle className="h-4 w-4 text-red-500" />
+                    <Icon name="cancel" size={16} className="text-red-500" />
                   )}
                 </div>
               </div>
@@ -179,11 +178,7 @@ export function SettingsModal({
                 onClick={() => setShowKey(!showKey)}
                 className="shrink-0 h-10 w-10"
               >
-                {showKey ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                <Icon name={showKey ? "visibility_off" : "visibility"} size={20} />
               </Button>
             </div>
             {modelsError && (
@@ -201,7 +196,7 @@ export function SettingsModal({
                   href="https://aistudio.google.com/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-violet-600 hover:underline"
+                  className="text-amber-700 hover:underline"
                 >
                   Google AI Studio
                 </a>{" "}
@@ -225,7 +220,7 @@ export function SettingsModal({
                     fetchModels(settings.geminiApiKey);
                   }}
                 >
-                  <RefreshCw className={`h-4 w-4 ${modelsLoading ? "animate-spin" : ""}`} />
+                  <Icon name="refresh" size={16} className={modelsLoading ? "animate-spin" : ""} />
                   刷新
                 </Button>
               )}
@@ -266,7 +261,7 @@ export function SettingsModal({
 
             {settings.modelName && models.length > 0 && (
               <p className="text-xs text-zinc-500">
-                当前: <span className="font-mono text-violet-600">{settings.modelName}</span>
+                当前: <span className="font-mono text-amber-700">{settings.modelName}</span>
               </p>
             )}
           </div>
@@ -299,7 +294,7 @@ export function SettingsModal({
               onClick={onReset}
               className="gap-1.5 text-sm h-10"
             >
-              <RotateCcw className="h-4 w-4" />
+              <Icon name="restart_alt" size={18} />
               恢复默认参数
             </Button>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Check, Copy } from "lucide-react";
+import { Icon } from "./Icon";
 import { Button } from "@/components/ui/button";
 
 interface CopyButtonProps {
@@ -41,12 +41,12 @@ export function CopyButton({
       variant={variant}
       size={size}
       onClick={handleCopy}
-      className="gap-1.5 text-xs rounded-lg hover:text-violet-600 hover:border-violet-200 h-9 px-2.5 sm:px-3"
+      className="gap-1.5 text-xs rounded-lg hover:text-amber-700 hover:border-amber-200 h-9 px-2.5 sm:px-3"
     >
       {copied ? (
-        <Check className="h-4 w-4 text-green-600" />
+        <Icon name="check" size={16} className="text-green-600" />
       ) : (
-        <Copy className="h-4 w-4" />
+        <Icon name="content_copy" size={16} />
       )}
       {label ? (
         <span className="hidden sm:inline">{copied ? "已复制" : label}</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Send, Square, Loader2, Sparkles } from "lucide-react";
+import { Icon } from "./Icon";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -55,8 +55,8 @@ export function QuestionInput({
         <span className="text-xs text-zinc-400 min-w-0 flex-1 mr-2">
           {isGenerating ? (
             <span className="inline-flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-violet-500 shrink-0" />
-              <span className="text-violet-600 font-medium truncate max-w-[80px] sm:max-w-none">{modelName}</span>
+              <Icon name="auto_awesome" size={14} className="text-amber-600 shrink-0" />
+              <span className="text-amber-700 font-medium truncate max-w-[80px] sm:max-w-none">{modelName}</span>
               <span className="shrink-0">生成中</span>
               <span className="text-zinc-500 shrink-0">{streamWordCount} 字</span>
             </span>
@@ -71,19 +71,19 @@ export function QuestionInput({
               variant="outline"
               className="gap-1.5 text-red-600 border-red-200/60 hover:bg-red-50/80 rounded-xl h-10 px-4 text-sm"
             >
-              <Square className="h-4 w-4" />
+              <Icon name="stop" size={18} />
               停止
             </Button>
           ) : (
             <Button
               onClick={handleSubmit}
               disabled={!text.trim() || disabled}
-              className="gap-1.5 bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 shadow-sm rounded-xl h-10 px-4 text-sm"
+              className="gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-sm rounded-xl h-10 px-4 text-sm"
             >
               {disabled ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Icon name="progress_activity" size={18} className="animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Icon name="send" size={18} />
               )}
               <span className="hidden sm:inline">生成作答</span>
               <span className="sm:hidden">生成</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings2, Download, Upload, LogOut, Menu } from "lucide-react";
+import { Icon } from "./Icon";
 import { Button } from "@/components/ui/button";
 import { exportData, importData } from "@/lib/storage";
 import { useCallback, useRef } from "react";
@@ -65,10 +65,10 @@ export function Header({ onOpenSettings, onDataChange, onToggleSidebar }: Header
           className="lg:hidden h-10 w-10 text-zinc-600"
           onClick={onToggleSidebar}
         >
-          <Menu className="h-5 w-5" />
+          <Icon name="menu" size={22} />
         </Button>
 
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-sm">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-sm">
           <span className="text-white text-xs sm:text-sm font-bold">考</span>
         </div>
         <div>
@@ -84,7 +84,7 @@ export function Header({ onOpenSettings, onDataChange, onToggleSidebar }: Header
           onClick={handleExport}
           className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <Download className="h-4 w-4" />
+          <Icon name="download" size={20} />
           <span className="sr-only">导出</span>
         </Button>
         <Button
@@ -93,7 +93,7 @@ export function Header({ onOpenSettings, onDataChange, onToggleSidebar }: Header
           onClick={handleImport}
           className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <Upload className="h-4 w-4" />
+          <Icon name="upload" size={20} />
           <span className="sr-only">导入</span>
         </Button>
         <Button
@@ -102,7 +102,7 @@ export function Header({ onOpenSettings, onDataChange, onToggleSidebar }: Header
           onClick={onOpenSettings}
           className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <Settings2 className="h-4 w-4" />
+          <Icon name="settings" size={20} />
           <span className="sr-only">设置</span>
         </Button>
         <Button
@@ -111,7 +111,7 @@ export function Header({ onOpenSettings, onDataChange, onToggleSidebar }: Header
           onClick={handleLogout}
           className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
         >
-          <LogOut className="h-4 w-4" />
+          <Icon name="logout" size={20} />
           <span className="sr-only">退出</span>
         </Button>
         <input

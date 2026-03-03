@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Star, FolderOpen, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Icon } from "./Icon";
 
 interface SidebarProps {
   history: QAPair[];
@@ -89,7 +89,7 @@ export function Sidebar({
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+          <Icon name="search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -103,7 +103,7 @@ export function Sidebar({
               className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
               onClick={() => setSearchQuery("")}
             >
-              <X className="h-4 w-4" />
+              <Icon name="close" size={18} />
             </Button>
           )}
         </div>
@@ -122,10 +122,10 @@ export function Sidebar({
         <Button
           variant={filterCategory === "favorites" ? "default" : "ghost"}
           size="sm"
-          className="h-8 text-xs px-3 rounded-full"
+          className="h-8 text-xs px-3 rounded-full gap-1"
           onClick={() => setFilterCategory("favorites")}
         >
-          <Star className="h-3.5 w-3.5 mr-1" />
+          <Icon name="star" size={14} />
           收藏 ({stats.favorites})
         </Button>
       </div>
@@ -146,12 +146,12 @@ export function Sidebar({
                     onClick={() => toggleCategory(cat)}
                     className="flex items-center gap-2 w-full px-2.5 py-2.5 rounded-lg hover:bg-zinc-100/60 transition-colors min-h-[44px]"
                   >
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-zinc-400 shrink-0" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
-                    )}
-                    <FolderOpen className="h-4 w-4 text-zinc-500 shrink-0" />
+                    <Icon
+                      name={isExpanded ? "expand_more" : "chevron_right"}
+                      size={18}
+                      className="text-zinc-400 shrink-0"
+                    />
+                    <Icon name="folder_open" size={18} className="text-zinc-500 shrink-0" />
                     <span className="text-sm font-medium text-zinc-700">{cat}</span>
                     <Badge variant="outline" className={`text-xs ml-auto px-1.5 py-0 ${colors}`}>
                       {items.length}
@@ -166,12 +166,12 @@ export function Sidebar({
                           onClick={() => onSelect(pair.question.id)}
                           className={`flex items-start gap-2 w-full text-left px-3 py-3 rounded-lg text-sm transition-colors min-h-[44px] ${
                             selectedId === pair.question.id
-                              ? "bg-violet-50 text-violet-700 border border-violet-200/60"
+                              ? "bg-amber-50 text-amber-800 border border-amber-200/60"
                               : "hover:bg-zinc-100/60 text-zinc-600"
                           }`}
                         >
                           {pair.question.isFavorite && (
-                            <Star className="h-4 w-4 fill-amber-400 text-amber-400 shrink-0 mt-0.5" />
+                            <Icon name="star" size={16} fill className="text-amber-400 shrink-0 mt-0.5" />
                           )}
                           <span className="line-clamp-2 leading-relaxed">
                             <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
@@ -193,12 +193,12 @@ export function Sidebar({
                   onClick={() => onSelect(pair.question.id)}
                   className={`flex items-start gap-2 w-full text-left px-3 py-3 rounded-lg text-sm transition-colors min-h-[44px] ${
                     selectedId === pair.question.id
-                      ? "bg-violet-50 text-violet-700 border border-violet-200/60"
+                      ? "bg-amber-50 text-amber-800 border border-amber-200/60"
                       : "hover:bg-zinc-100/60 text-zinc-600"
                   }`}
                 >
                   {pair.question.isFavorite && (
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-400 shrink-0 mt-0.5" />
+                    <Icon name="star" size={16} fill className="text-amber-400 shrink-0 mt-0.5" />
                   )}
                   <span className="line-clamp-2 leading-relaxed">
                     <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
