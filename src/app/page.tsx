@@ -11,7 +11,8 @@ import { useQuestions } from "@/hooks/useQuestions";
 import { useGenerate } from "@/hooks/useGenerate";
 import { useTTS } from "@/hooks/useTTS";
 import { parseSections, parseMetadata, stripMetaBlock } from "@/lib/parser";
-import { QAPair, Question, Answer, TTS_VOICE_NAMES } from "@/lib/types";
+import { QAPair, Question, Answer, TTS_VOICE_NAMES, SectionKey, SectionVersion, SectionAnnotation } from "@/lib/types";
+import { ensureSectionMeta, generateId } from "@/lib/storage";
 import { CachedVoiceInfo } from "@/lib/audio-cache";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Icon } from "@/components/Icon";
@@ -19,7 +20,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const { settings, update: updateSettings, reset: resetSettings, loaded: settingsLoaded } = useSettings();
-  const { history, addPair, toggleFavorite, removePair, stats, loaded: historyLoaded } = useQuestions();
+  const { history, addPair, updatePair, toggleFavorite, removePair, stats, loaded: historyLoaded } = useQuestions();
   const { isGenerating, streamText, error, generate, stop, clearError } = useGenerate();
   const { status: ttsStatus, error: ttsError, activeAnswerId: ttsActiveId, timestamps: ttsTimestamps, currentWordIndex: ttsWordIndex, plainText: ttsPlainText, duration: ttsDuration, currentTime: ttsCurrentTime, rate: ttsRate, completionInfo: ttsCompletionInfo, speak, pause, resume, stop: stopTTS, setRate: setTTSRate, seek: seekTTS, clearCompletion: clearTTSCompletion, listCachedVoices: listCached, clearError: clearTTSError } = useTTS();
 
@@ -148,6 +149,149 @@ export default function Home() {
     [displayPair, settings, speak, listCached]
   );
 
+  // ─── Section edit / annotation / version handlers ─────────────
+
+  const handleSectionUpdate = useCallback(
+    (sectionKey: SectionKey, newContent: string, source: SectionVersion["source"], instruction?: string) => {
+      if (!selectedId) return;
+      updatePair(selectedId, (pair) => {
+        const answer = ensureSectionMeta(pair.answer);
+        const meta = answer.sectionMeta![sectionKey];
+        const newVersion: SectionVersion = {
+          id: generateId("ver_"),
+          content: newContent,
+          source,
+          instruction,
+          createdAt: new Date().toISOString(),
+        };
+        const versions = [newVersion, ...meta.versions].slice(0, 20);
+        return {
+          ...pair,
+          answer: {
+            ...answer,
+            sections: { ...answer.sections, [sectionKey]: newContent },
+            sectionMeta: {
+              ...answer.sectionMeta!,
+              [sectionKey]: { ...meta, versions, currentVersionId: newVersion.id },
+            },
+          },
+        };
+      });
+    },
+    [selectedId, updatePair]
+  );
+
+  const handleAnnotationAdd = useCallback(
+    (sectionKey: SectionKey, content: string) => {
+      if (!selectedId) return;
+      updatePair(selectedId, (pair) => {
+        const answer = ensureSectionMeta(pair.answer);
+        const meta = answer.sectionMeta![sectionKey];
+        const newAnnotation: SectionAnnotation = {
+          id: generateId("ann_"),
+          content,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          ...pair,
+          answer: {
+            ...answer,
+            sectionMeta: {
+              ...answer.sectionMeta!,
+              [sectionKey]: { ...meta, annotations: [...meta.annotations, newAnnotation] },
+            },
+          },
+        };
+      });
+    },
+    [selectedId, updatePair]
+  );
+
+  const handleAnnotationDelete = useCallback(
+    (sectionKey: SectionKey, annotationId: string) => {
+      if (!selectedId) return;
+      updatePair(selectedId, (pair) => {
+        const answer = ensureSectionMeta(pair.answer);
+        const meta = answer.sectionMeta![sectionKey];
+        return {
+          ...pair,
+          answer: {
+            ...answer,
+            sectionMeta: {
+              ...answer.sectionMeta!,
+              [sectionKey]: {
+                ...meta,
+                annotations: meta.annotations.filter((a) => a.id !== annotationId),
+              },
+            },
+          },
+        };
+      });
+    },
+    [selectedId, updatePair]
+  );
+
+  const handleAnnotationUpdate = useCallback(
+    (sectionKey: SectionKey, annotationId: string, content: string) => {
+      if (!selectedId) return;
+      updatePair(selectedId, (pair) => {
+        const answer = ensureSectionMeta(pair.answer);
+        const meta = answer.sectionMeta![sectionKey];
+        return {
+          ...pair,
+          answer: {
+            ...answer,
+            sectionMeta: {
+              ...answer.sectionMeta!,
+              [sectionKey]: {
+                ...meta,
+                annotations: meta.annotations.map((a) =>
+                  a.id === annotationId
+                    ? { ...a, content, updatedAt: new Date().toISOString() }
+                    : a
+                ),
+              },
+            },
+          },
+        };
+      });
+    },
+    [selectedId, updatePair]
+  );
+
+  const handleVersionRestore = useCallback(
+    (sectionKey: SectionKey, versionId: string) => {
+      if (!selectedId) return;
+      updatePair(selectedId, (pair) => {
+        const answer = ensureSectionMeta(pair.answer);
+        const meta = answer.sectionMeta![sectionKey];
+        const target = meta.versions.find((v) => v.id === versionId);
+        if (!target) return pair;
+        // Restoring creates a new version (never delete history)
+        const restoreVersion: SectionVersion = {
+          id: generateId("ver_"),
+          content: target.content,
+          source: "manual_edit",
+          createdAt: new Date().toISOString(),
+        };
+        const versions = [restoreVersion, ...meta.versions].slice(0, 20);
+        return {
+          ...pair,
+          answer: {
+            ...answer,
+            sections: { ...answer.sections, [sectionKey]: target.content },
+            sectionMeta: {
+              ...answer.sectionMeta!,
+              [sectionKey]: { ...meta, versions, currentVersionId: restoreVersion.id },
+            },
+          },
+        };
+      });
+    },
+    [selectedId, updatePair]
+  );
+
   const sidebarContent = (
     <Sidebar
       history={history}
@@ -272,6 +416,12 @@ export default function Home() {
                   cachedVoices={showTTS ? cachedVoices : undefined}
                   completionInfo={isTTSTarget || showTTS ? ttsCompletionInfo : undefined}
                   onClearCompletion={clearTTSCompletion}
+                  onSectionUpdate={isStreaming ? undefined : handleSectionUpdate}
+                  onAnnotationAdd={isStreaming ? undefined : handleAnnotationAdd}
+                  onAnnotationDelete={isStreaming ? undefined : handleAnnotationDelete}
+                  onAnnotationUpdate={isStreaming ? undefined : handleAnnotationUpdate}
+                  onVersionRestore={isStreaming ? undefined : handleVersionRestore}
+                  settings={settings}
                 />);
               })()) : (
                 /* Empty state */
