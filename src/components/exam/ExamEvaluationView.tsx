@@ -39,7 +39,12 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 function buildEvalSpeechText(evalResult: ExamEvaluation): string {
-  return evalResult.suggestions || "没有评语。";
+  const parts: string[] = [];
+  if (evalResult.summary) parts.push(`总评：${evalResult.summary}`);
+  if (evalResult.strengths.length > 0) parts.push(`优点：${evalResult.strengths.join("；")}`);
+  if (evalResult.weaknesses.length > 0) parts.push(`不足：${evalResult.weaknesses.join("；")}`);
+  if (evalResult.suggestions) parts.push(`建议：${evalResult.suggestions}`);
+  return parts.length > 0 ? parts.join("\n") : "没有评语。";
 }
 
 function EvalTTSButton({

@@ -645,21 +645,46 @@ export function SettingsModal({
                   独立于首页朗读，用于导师口吻回答的语音合成。需选择支持 Instruct 的音色。
                 </p>
 
-                {/* Mentor voice selector — only instruct-capable voices */}
+                {/* Mentor voice selector — custom + system voices */}
                 <div>
                   <p className="text-xs text-zinc-500 mb-1.5">导师音色</p>
                   <Select value={settings.mentorVoice} onValueChange={(voiceId) => {
-                    const v = voices.find((v) => v.id === voiceId);
-                    onUpdate({
-                      mentorVoice: voiceId,
-                      mentorVoiceName: v?.name || voiceId,
-                    });
+                    const custom = customVoices.find((cv) => cv.voiceId === voiceId);
+                    if (custom) {
+                      onUpdate({
+                        mentorVoice: voiceId,
+                        mentorVoiceName: custom.name + " (自定义)",
+                        mentorCustomTargetModel: custom.targetModel,
+                      });
+                    } else {
+                      const v = voices.find((v) => v.id === voiceId);
+                      onUpdate({
+                        mentorVoice: voiceId,
+                        mentorVoiceName: v?.name || voiceId,
+                        mentorCustomTargetModel: "",
+                      });
+                    }
                   }}>
                     <SelectTrigger className="h-11 rounded-xl">
                       <SelectValue placeholder="选择导师音色" />
                     </SelectTrigger>
                     <SelectContent>
-                      {/* Instruct voices first (recommended) */}
+                      {/* Custom voices first */}
+                      {customVoices.length > 0 && (
+                        <>
+                          {customVoices.map((cv) => (
+                            <SelectItem key={cv.voiceId} value={cv.voiceId}>
+                              <div className="flex items-center gap-2">
+                                <Icon name="mic" size={14} className="text-amber-600" fill />
+                                <span className="text-sm">{cv.name}</span>
+                                <span className="text-[9px] px-1 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">自定义</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                          <div className="border-t border-zinc-100 my-1" />
+                        </>
+                      )}
+                      {/* Instruct voices (recommended) */}
                       {(voices.length > 0 ? voices : TTS_VOICES_FALLBACK)
                         .filter((v) => v.instruct)
                         .map((v) => (
