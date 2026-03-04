@@ -12,17 +12,28 @@ export function useExamEvaluation() {
 
   const parseEvalBlocks = useCallback((text: string): Map<number, ExamEvaluation> => {
     const results = new Map<number, ExamEvaluation>();
-    const regex = /```eval\s*\n?([\s\S]*?)```/g;
+    const evalRegex = /```eval\s*\n?([\s\S]*?)```/g;
+
+    // Split text into segments: [text before eval1, eval1 JSON, text before eval2, eval2 JSON, ...]
+    // Extract commentary text that appears before each eval block
+    const segments = text.split(/```eval\s*\n?[\s\S]*?```/);
+
     let match;
-    while ((match = regex.exec(text)) !== null) {
+    let blockIdx = 0;
+    while ((match = evalRegex.exec(text)) !== null) {
       try {
         const parsed = JSON.parse(match[1].trim());
+        // The commentary for this eval is the text segment before it
+        const commentary = (segments[blockIdx] || "")
+          .replace(/---\s*$/gm, "")
+          .trim();
         const evaluation: ExamEvaluation = {
           score: parsed.score ?? 0,
           summary: parsed.summary ?? "",
           strengths: parsed.strengths ?? [],
           weaknesses: parsed.weaknesses ?? [],
           suggestions: parsed.suggestions ?? "",
+          fullCommentary: commentary || undefined,
           modelUsed: "",
           evaluatedAt: new Date().toISOString(),
         };
@@ -30,6 +41,7 @@ export function useExamEvaluation() {
       } catch {
         // Skip malformed eval blocks
       }
+      blockIdx++;
     }
     return results;
   }, []);
