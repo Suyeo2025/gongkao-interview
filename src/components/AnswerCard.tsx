@@ -48,7 +48,9 @@ interface AnswerCardProps {
   onAnnotationUpdate?: (sectionKey: SectionKey, annotationId: string, content: string) => void;
   onVersionRestore?: (sectionKey: SectionKey, versionId: string) => void;
   onImportToBank?: (content: string, category: QuestionCategory | null) => void;
+  isInBank?: boolean;
   onSpeakMentorEval?: (text: string) => void;
+  ttsActiveId?: string | null;
   settings?: Settings;
 }
 
@@ -81,7 +83,9 @@ export function AnswerCard({
   onAnnotationUpdate,
   onVersionRestore,
   onImportToBank,
+  isInBank = false,
   onSpeakMentorEval,
+  ttsActiveId,
   settings: cardSettings,
 }: AnswerCardProps) {
   const { question, answer } = pair;
@@ -97,6 +101,9 @@ export function AnswerCard({
       stored.pitfalls.trim() || stored.notes.trim();
     return hasStoredContent ? stored : parseSections(answer.rawMarkdown);
   }, [isStreaming, answer.sections, answer.rawMarkdown]);
+
+  // Isolate: answer section TTS vs mentor eval TTS
+  const isAnswerTTSActive = ttsActiveId === answer.id;
 
   const hasSections =
     !isStreaming &&
@@ -227,23 +234,23 @@ export function AnswerCard({
                 onAnnotationUpdate={onAnnotationUpdate ? (id, c) => onAnnotationUpdate(key, id, c) : undefined}
                 onVersionRestore={onVersionRestore ? (vid) => onVersionRestore(key, vid) : undefined}
                 {...(key === "answer" ? {
-                  ttsStatus,
+                  ttsStatus: isAnswerTTSActive ? ttsStatus : (ttsStatus != null ? "idle" : undefined),
                   onSpeak,
-                  onPause,
-                  onResume,
-                  onStop,
-                  timestamps,
-                  currentWordIndex,
-                  plainText,
+                  onPause: isAnswerTTSActive ? onPause : undefined,
+                  onResume: isAnswerTTSActive ? onResume : undefined,
+                  onStop: isAnswerTTSActive ? onStop : undefined,
+                  timestamps: isAnswerTTSActive ? timestamps : [],
+                  currentWordIndex: isAnswerTTSActive ? currentWordIndex : -1,
+                  plainText: isAnswerTTSActive ? plainText : "",
                   voiceName,
                   ttsRate,
-                  onSetRate,
-                  onSeek,
-                  duration,
-                  currentTime,
+                  onSetRate: isAnswerTTSActive ? onSetRate : undefined,
+                  onSeek: isAnswerTTSActive ? onSeek : undefined,
+                  duration: isAnswerTTSActive ? duration : 0,
+                  currentTime: isAnswerTTSActive ? currentTime : 0,
                   cachedVoices,
-                  completionInfo,
-                  onClearCompletion,
+                  completionInfo: isAnswerTTSActive ? completionInfo : undefined,
+                  onClearCompletion: isAnswerTTSActive ? onClearCompletion : undefined,
                 } : {})}
               />
             ))}
@@ -260,6 +267,11 @@ export function AnswerCard({
             answerContent={sections.answer}
             settings={cardSettings}
             onSpeakText={onSpeakMentorEval}
+            onPauseTTS={onPause}
+            onResumeTTS={onResume}
+            onStopTTS={onStop}
+            ttsStatus={ttsStatus}
+            ttsActiveId={ttsActiveId}
           />
         </div>
       )}
@@ -284,7 +296,17 @@ export function AnswerCard({
                 <span className="hidden sm:inline">{question.isFavorite ? "已收藏" : "收藏"}</span>
               </Button>
             )}
-            {onImportToBank && (
+            {isInBank ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="gap-1.5 text-xs rounded-lg h-9 sm:h-10 px-2.5 sm:px-3 text-emerald-500 border-emerald-200 cursor-default opacity-70"
+              >
+                <Icon name="check_circle" size={18} />
+                <span className="hidden sm:inline">已在题库</span>
+              </Button>
+            ) : onImportToBank ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -294,7 +316,7 @@ export function AnswerCard({
                 <Icon name="library_add" size={18} />
                 <span className="hidden sm:inline">导入题库</span>
               </Button>
-            )}
+            ) : null}
             {onDelete && (
               <Button
                 variant="outline"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, Suspense } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -27,7 +27,7 @@ function HomeInner() {
   const { history, addPair, updatePair, toggleFavorite, removePair, stats, loaded: historyLoaded } = useQuestions();
   const { isGenerating, streamText, error, generate, stop, clearError } = useGenerate();
   const { status: ttsStatus, error: ttsError, activeAnswerId: ttsActiveId, timestamps: ttsTimestamps, currentWordIndex: ttsWordIndex, plainText: ttsPlainText, duration: ttsDuration, currentTime: ttsCurrentTime, rate: ttsRate, completionInfo: ttsCompletionInfo, speak, pause, resume, stop: stopTTS, setRate: setTTSRate, seek: seekTTS, clearCompletion: clearTTSCompletion, listCachedVoices: listCached, clearError: clearTTSError } = useTTS();
-  const { addQuestion: addToBank, syncFromHistory: syncBankFromHistory, updateCategoryByContent: updateBankCategory } = useQuestionBank();
+  const { questions: bankQuestions, addQuestion: addToBank, syncFromHistory: syncBankFromHistory, updateCategoryByContent: updateBankCategory } = useQuestionBank();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -40,6 +40,12 @@ function HomeInner() {
   const hasApiKey = settings.textProvider === "gemini"
     ? !!settings.geminiApiKey
     : !!settings.qwenApiKey;
+
+  // Track which questions are already in the bank (by content)
+  const bankContentSet = useMemo(
+    () => new Set(bankQuestions.map((q) => q.content.trim())),
+    [bankQuestions]
+  );
 
   // Auto-open settings if no API key
   useEffect(() => {
@@ -455,6 +461,8 @@ function HomeInner() {
               {displayPair ? ((() => {
                 const isStreaming = isGenerating && !!currentStreamPair;
                 const isTTSTarget = !isStreaming && displayPair.answer.id === ttsActiveId;
+                const isMentorTTSTarget = !isStreaming && ttsActiveId === `${displayPair.answer.id}_mentor_eval`;
+                const isAnyTTSTarget = isTTSTarget || isMentorTTSTarget;
                 const showTTS = !isStreaming;
                 return (
                 <AnswerCard
@@ -464,11 +472,12 @@ function HomeInner() {
                   onToggleFavorite={isStreaming ? undefined : toggleFavorite}
                   onDelete={isStreaming ? undefined : removePair}
                   onImportToBank={isStreaming ? undefined : handleImportToBank}
-                  ttsStatus={isTTSTarget ? ttsStatus : showTTS ? "idle" : undefined}
+                  isInBank={bankContentSet.has(displayPair.question.content.trim())}
+                  ttsStatus={isAnyTTSTarget ? ttsStatus : showTTS ? "idle" : undefined}
                   onSpeak={showTTS ? handleSpeak : undefined}
-                  onPause={isTTSTarget ? pause : undefined}
-                  onResume={isTTSTarget ? resume : undefined}
-                  onStop={isTTSTarget ? stopTTS : undefined}
+                  onPause={isAnyTTSTarget ? pause : undefined}
+                  onResume={isAnyTTSTarget ? resume : undefined}
+                  onStop={isAnyTTSTarget ? stopTTS : undefined}
                   timestamps={isTTSTarget ? ttsTimestamps : undefined}
                   currentWordIndex={isTTSTarget ? ttsWordIndex : undefined}
                   plainText={isTTSTarget ? ttsPlainText : undefined}
@@ -487,6 +496,7 @@ function HomeInner() {
                   onAnnotationUpdate={isStreaming ? undefined : handleAnnotationUpdate}
                   onVersionRestore={isStreaming ? undefined : handleVersionRestore}
                   onSpeakMentorEval={isStreaming ? undefined : handleSpeakMentorEval}
+                  ttsActiveId={ttsActiveId}
                   settings={settings}
                 />);
               })()) : (

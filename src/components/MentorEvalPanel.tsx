@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import { ExamEvaluation, Settings } from "@/lib/types";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { getMentorEvals, addMentorEval, MentorEvalVersion } from "@/lib/storage";
+import { TTSStatus } from "@/hooks/useTTS";
 
 interface MentorEvalPanelProps {
   answerId: string;
@@ -12,6 +13,11 @@ interface MentorEvalPanelProps {
   answerContent: string;
   settings: Settings;
   onSpeakText?: (text: string) => void;
+  onPauseTTS?: () => void;
+  onResumeTTS?: () => void;
+  onStopTTS?: () => void;
+  ttsStatus?: TTSStatus;
+  ttsActiveId?: string | null;
 }
 
 function parseEvalBlock(text: string): ExamEvaluation | null {
@@ -59,7 +65,7 @@ function formatTime(iso: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
 }
 
-export function MentorEvalPanel({ answerId, questionContent, answerContent, settings, onSpeakText }: MentorEvalPanelProps) {
+export function MentorEvalPanel({ answerId, questionContent, answerContent, settings, onSpeakText, onPauseTTS, onResumeTTS, onStopTTS, ttsStatus, ttsActiveId }: MentorEvalPanelProps) {
   // Persisted versions
   const [versions, setVersions] = useState<MentorEvalVersion[]>([]);
   const [activeIdx, setActiveIdx] = useState(0); // 0 = latest
@@ -215,32 +221,67 @@ export function MentorEvalPanel({ answerId, questionContent, answerContent, sett
               <Icon name="close" size={14} />
             </button>
           )}
-          {!isEvaluating && displayEval && (
-            <>
-              {onSpeakText && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const parts: string[] = [];
-                    if (displayEval.summary) parts.push(displayEval.summary);
-                    if (displayEval.weaknesses.length > 0) parts.push(displayEval.weaknesses.join("。"));
-                    if (displayEval.suggestions) parts.push(displayEval.suggestions);
-                    onSpeakText(parts.join("\n"));
-                  }}
-                  className="p-1 rounded-md text-rose-400 hover:text-rose-600 transition-colors"
-                  title="导师语音朗读"
-                >
-                  <Icon name="record_voice_over" size={15} />
+          {!isEvaluating && displayEval && (() => {
+            const mentorTTSId = `${answerId}_mentor_eval`;
+            const isMentorTTSActive = ttsActiveId === mentorTTSId;
+            const mentorTTSStatus = isMentorTTSActive ? ttsStatus : "idle";
+
+            const speakMentorText = () => {
+              if (!onSpeakText) return;
+              const parts: string[] = [];
+              if (displayEval.summary) parts.push(displayEval.summary);
+              if (displayEval.weaknesses.length > 0) parts.push(displayEval.weaknesses.join("。"));
+              if (displayEval.suggestions) parts.push(displayEval.suggestions);
+              onSpeakText(parts.join("\n"));
+            };
+
+            return (
+              <>
+                {onSpeakText && mentorTTSStatus === "loading" && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-rose-500 bg-rose-100/60">
+                    <Icon name="progress_activity" size={13} className="animate-spin" />
+                    合成中
+                  </span>
+                )}
+                {onSpeakText && mentorTTSStatus === "playing" && (
+                  <div className="inline-flex items-center gap-0.5">
+                    <button type="button" onClick={onPauseTTS} className="p-1 rounded-md text-rose-500 hover:text-rose-700 bg-rose-100/60 hover:bg-rose-100 transition-colors" title="暂停">
+                      <Icon name="pause" size={14} />
+                    </button>
+                    <button type="button" onClick={onStopTTS} className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 transition-colors" title="停止">
+                      <Icon name="stop" size={14} />
+                    </button>
+                  </div>
+                )}
+                {onSpeakText && mentorTTSStatus === "paused" && (
+                  <div className="inline-flex items-center gap-0.5">
+                    <button type="button" onClick={onResumeTTS} className="p-1 rounded-md text-emerald-500 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors" title="继续">
+                      <Icon name="play_arrow" size={14} />
+                    </button>
+                    <button type="button" onClick={onStopTTS} className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 transition-colors" title="停止">
+                      <Icon name="stop" size={14} />
+                    </button>
+                  </div>
+                )}
+                {onSpeakText && (mentorTTSStatus === "idle" || !mentorTTSStatus) && (
+                  <button
+                    type="button"
+                    onClick={speakMentorText}
+                    className="p-1 rounded-md text-rose-400 hover:text-rose-600 transition-colors"
+                    title="导师语音朗读"
+                  >
+                    <Icon name="record_voice_over" size={15} />
+                  </button>
+                )}
+                <button type="button" onClick={() => setShowDetail(!showDetail)} className="p-1 rounded-md text-rose-400 hover:text-rose-600 transition-colors" title={showDetail ? "收起" : "展开"}>
+                  <Icon name={showDetail ? "expand_less" : "expand_more"} size={16} />
                 </button>
-              )}
-              <button type="button" onClick={() => setShowDetail(!showDetail)} className="p-1 rounded-md text-rose-400 hover:text-rose-600 transition-colors" title={showDetail ? "收起" : "展开"}>
-                <Icon name={showDetail ? "expand_less" : "expand_more"} size={16} />
-              </button>
-              <button type="button" onClick={evaluate} className="p-1 rounded-md text-rose-400 hover:text-rose-600 transition-colors" title="重新评价">
-                <Icon name="refresh" size={14} />
-              </button>
-            </>
-          )}
+                <button type="button" onClick={evaluate} className="p-1 rounded-md text-rose-400 hover:text-rose-600 transition-colors" title="重新评价">
+                  <Icon name="refresh" size={14} />
+                </button>
+              </>
+            );
+          })()}
         </div>
       </div>
 
