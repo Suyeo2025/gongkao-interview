@@ -1,4 +1,4 @@
-import { QAPair, Settings, DEFAULT_SETTINGS } from "./types";
+import { QAPair, Settings, DEFAULT_SETTINGS, Answer, SectionKey, SectionMeta, SectionVersion } from "./types";
 
 const STORAGE_KEYS = {
   HISTORY: "gongkao_history",
@@ -65,6 +65,28 @@ export function generateId(prefix: string): string {
   const now = Date.now();
   const random = Math.random().toString(36).substring(2, 6);
   return `${prefix}${now}${random}`;
+}
+
+const SECTION_KEYS: SectionKey[] = ["answer", "review", "template", "pitfalls", "notes"];
+
+export function ensureSectionMeta(answer: Answer): Answer {
+  if (answer.sectionMeta) return answer;
+
+  const sectionMeta = {} as Record<SectionKey, SectionMeta>;
+  for (const key of SECTION_KEYS) {
+    const initialVersion: SectionVersion = {
+      id: generateId("ver_"),
+      content: answer.sections[key],
+      source: "ai_original",
+      createdAt: answer.createdAt,
+    };
+    sectionMeta[key] = {
+      annotations: [],
+      versions: [initialVersion],
+      currentVersionId: initialVersion.id,
+    };
+  }
+  return { ...answer, sectionMeta };
 }
 
 export function exportData(): string {

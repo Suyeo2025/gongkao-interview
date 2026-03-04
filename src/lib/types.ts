@@ -1,3 +1,30 @@
+// ─── Section annotation & version types ──────────────────────────
+
+export type SectionKey = "answer" | "review" | "template" | "pitfalls" | "notes";
+
+export interface SectionAnnotation {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SectionVersion {
+  id: string;
+  content: string;
+  source: "ai_original" | "manual_edit" | "ai_regenerate";
+  instruction?: string;
+  createdAt: string;
+}
+
+export interface SectionMeta {
+  annotations: SectionAnnotation[];
+  versions: SectionVersion[];
+  currentVersionId: string;
+}
+
+// ─── Core types ──────────────────────────────────────────────────
+
 export type QuestionCategory =
   | "综合分析"
   | "组织策划"
@@ -38,6 +65,7 @@ export interface Answer {
   metadata: AnswerMetadata | null;
   createdAt: string;
   modelUsed: string;
+  sectionMeta?: Record<SectionKey, SectionMeta>;
 }
 
 export interface QAPair {

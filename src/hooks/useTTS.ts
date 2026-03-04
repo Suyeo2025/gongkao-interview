@@ -13,6 +13,41 @@ export interface CompletionInfo {
   rate: number;
 }
 
+// Binary search: find the word index for a given time in ms.
+// Timestamps MUST be sorted by beginTime (ascending).
+function findWordIndex(ts: WordTimestamp[], ms: number): number {
+  if (ts.length === 0 || ms < ts[0].beginTime) return -1;
+
+  // Binary search for the last word whose beginTime <= ms
+  let lo = 0, hi = ts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (ts[mid].beginTime <= ms) lo = mid;
+    else hi = mid - 1;
+  }
+
+  // Exact match: ms falls within [beginTime, endTime)
+  if (ms >= ts[lo].beginTime && ms < ts[lo].endTime) return lo;
+  // Gap: ms is past word[lo]'s end — stay on word[lo] until next word starts
+  if (ms >= ts[lo].endTime) return lo;
+
+  return Math.max(lo - 1, -1);
+}
+
+// Deduplicate and sort timestamps (defensive — handles duplicates from cache or API)
+function deduplicateTimestamps(ts: WordTimestamp[]): WordTimestamp[] {
+  if (ts.length <= 1) return ts;
+  const sorted = [...ts].sort((a, b) => a.beginTime - b.beginTime || a.endTime - b.endTime);
+  const result: WordTimestamp[] = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = result[result.length - 1];
+    if (sorted[i].beginTime !== prev.beginTime || sorted[i].endTime !== prev.endTime) {
+      result.push(sorted[i]);
+    }
+  }
+  return result;
+}
+
 export function useTTS() {
   const [status, setStatus] = useState<TTSStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +85,8 @@ export function useTTS() {
     }
   }, []);
 
-  // Track current word by syncing audio.currentTime with timestamps
-  // Only triggers setState when the word index actually changes (not every frame)
+  // Track current word by syncing audio.currentTime with timestamps.
+  // Uses binary search O(log n) + monotonicity constraint to prevent flickering.
   const trackWord = useCallback(() => {
     const audio = audioRef.current;
     const ts = timestampsRef.current;
@@ -63,18 +98,15 @@ export function useTTS() {
     }
 
     const currentMs = audio.currentTime * 1000;
-    let idx = -1;
-    for (let i = 0; i < ts.length; i++) {
-      if (currentMs >= ts[i].beginTime && currentMs < ts[i].endTime) {
-        idx = i;
-        break;
-      }
-      if (currentMs >= ts[i].endTime && (i + 1 >= ts.length || currentMs < ts[i + 1].beginTime)) {
-        idx = i;
-      }
+    let idx = findWordIndex(ts, currentMs);
+
+    // Monotonicity: during normal playback word index can only advance.
+    // (lastIdxRef is reset to -1 on seek, allowing backward jumps after seek)
+    if (lastIdxRef.current >= 0 && idx >= 0 && idx < lastIdxRef.current) {
+      idx = lastIdxRef.current;
     }
 
-    // Only update word index state when it changes
+    // Only update state when index actually changes
     if (idx !== lastIdxRef.current) {
       lastIdxRef.current = idx;
       setCurrentWordIndex(idx);
@@ -168,8 +200,10 @@ export function useTTS() {
           await setCachedAudio(answerId, blob, wordTimestamps, clean, useVoice, useModel, useVoiceName);
         }
 
-        timestampsRef.current = wordTimestamps;
-        setTimestamps(wordTimestamps);
+        // Client-side dedup + sort as a safety net (handles old cached data too)
+        const deduped = deduplicateTimestamps(wordTimestamps);
+        timestampsRef.current = deduped;
+        setTimestamps(deduped);
 
         const url = URL.createObjectURL(blob);
         urlRef.current = url;
@@ -259,17 +293,11 @@ export function useTTS() {
     if (!audio) return;
     audio.currentTime = Math.max(0, Math.min(time, audio.duration || 0));
     setCurrentTime(audio.currentTime);
-    // Reset word tracking to re-sync
+    // Reset monotonicity constraint so word index can jump freely after seek
     lastIdxRef.current = -1;
-    // If paused, manually run one trackWord cycle to update highlight
+    // If paused, manually compute word index to update highlight
     if (audio.paused) {
-      const ts = timestampsRef.current;
-      const ms = audio.currentTime * 1000;
-      let idx = -1;
-      for (let i = 0; i < ts.length; i++) {
-        if (ms >= ts[i].beginTime && ms < ts[i].endTime) { idx = i; break; }
-        if (ms >= ts[i].endTime && (i + 1 >= ts.length || ms < ts[i + 1].beginTime)) { idx = i; }
-      }
+      const idx = findWordIndex(timestampsRef.current, audio.currentTime * 1000);
       lastIdxRef.current = idx;
       setCurrentWordIndex(idx);
     }

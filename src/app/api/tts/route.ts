@@ -21,24 +21,37 @@ interface TTSResult {
   timestamps: WordTimestamp[];
 }
 
-function extractWords(obj: Record<string, unknown> | undefined, out: WordTimestamp[]) {
+function extractWords(
+  obj: Record<string, unknown> | undefined,
+  seen: Set<string>,
+  out: WordTimestamp[],
+) {
   if (!obj) return;
-  // payload.output.sentence.words
+
+  // Collect candidates from both possible fields
+  const candidates: Array<{ text: string; begin_time: number; end_time: number }> = [];
+
+  // payload.output.sentence.words (singular — incremental)
   const sentence = obj.sentence as Record<string, unknown> | undefined;
   if (sentence && Array.isArray(sentence.words)) {
-    for (const w of sentence.words) {
-      out.push({ text: w.text, beginTime: w.begin_time, endTime: w.end_time });
-    }
+    candidates.push(...sentence.words);
   }
-  // payload.output.sentences[].words
+  // payload.output.sentences[].words (plural — may be cumulative)
   const sentences = obj.sentences as Array<Record<string, unknown>> | undefined;
   if (Array.isArray(sentences)) {
     for (const s of sentences) {
       if (Array.isArray(s.words)) {
-        for (const w of s.words) {
-          out.push({ text: w.text, beginTime: w.begin_time, endTime: w.end_time });
-        }
+        candidates.push(...s.words);
       }
+    }
+  }
+
+  // Deduplicate by (beginTime, endTime) to prevent the same word being added multiple times
+  for (const w of candidates) {
+    const key = `${w.begin_time}:${w.end_time}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push({ text: w.text, beginTime: w.begin_time, endTime: w.end_time });
     }
   }
 }
@@ -70,6 +83,7 @@ export async function POST(req: Request) {
     const taskId = randomUUID();
     const audioChunks: Buffer[] = [];
     const timestamps: WordTimestamp[] = [];
+    const seenWords = new Set<string>();
 
     const result = await new Promise<TTSResult>((resolve, reject) => {
       const ws = new WebSocket(WS_URL, {
@@ -84,6 +98,8 @@ export async function POST(req: Request) {
         try { ws.close(); } catch { /* ignore */ }
         if (err) return reject(err);
         const audioBuffer = Buffer.concat(audioChunks);
+        // Sort by time to ensure chronological order
+        timestamps.sort((a, b) => a.beginTime - b.beginTime || a.endTime - b.endTime);
         resolve({ audio: audioBuffer.toString("base64"), timestamps });
       };
 
@@ -154,7 +170,7 @@ export async function POST(req: Request) {
               payload: { input: {} },
             }));
           } else if (event === "result-generated") {
-            extractWords(msg.payload?.output, timestamps);
+            extractWords(msg.payload?.output, seenWords, timestamps);
             if (timestamps.length % 50 === 0) {
               console.log("[TTS] result-generated, timestamps=%d, audioKB=%d", timestamps.length, Math.round(Buffer.concat(audioChunks).length / 1024));
             }

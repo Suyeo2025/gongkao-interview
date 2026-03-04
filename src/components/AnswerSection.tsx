@@ -4,9 +4,13 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } fr
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { CopyButton } from "./CopyButton";
 import { Icon } from "./Icon";
+import { SectionEditor } from "./SectionEditor";
+import { SectionAnnotationPanel } from "./SectionAnnotationPanel";
+import { SectionRegenerateDialog } from "./SectionRegenerateDialog";
+import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { TTSStatus, CompletionInfo } from "@/hooks/useTTS";
 import { WordTimestamp, CachedVoiceInfo } from "@/lib/audio-cache";
-import { TTS_RATES } from "@/lib/types";
+import { TTS_RATES, SectionKey, SectionMeta, SectionVersion, Settings } from "@/lib/types";
 
 interface AnswerSectionProps {
   title: string;
@@ -33,6 +37,16 @@ interface AnswerSectionProps {
   // Completion info
   completionInfo?: CompletionInfo | null;
   onClearCompletion?: () => void;
+  // Annotation / edit / version props
+  sectionKey?: SectionKey;
+  sectionMeta?: SectionMeta;
+  questionContent?: string;
+  settings?: Settings;
+  onSectionUpdate?: (newContent: string, source: SectionVersion["source"], instruction?: string) => void;
+  onAnnotationAdd?: (content: string) => void;
+  onAnnotationDelete?: (annotationId: string) => void;
+  onAnnotationUpdate?: (annotationId: string, content: string) => void;
+  onVersionRestore?: (versionId: string) => void;
 }
 
 export function AnswerSection({
@@ -57,14 +71,30 @@ export function AnswerSection({
   currentTime = 0,
   completionInfo,
   onClearCompletion,
+  sectionKey,
+  sectionMeta,
+  questionContent,
+  settings,
+  onSectionUpdate,
+  onAnnotationAdd,
+  onAnnotationDelete,
+  onAnnotationUpdate,
+  onVersionRestore,
 }: AnswerSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [showAnnotations, setShowAnnotations] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   if (!content.trim()) return null;
 
   const showTTS = !!onSpeak;
   const isTTSActive = ttsStatus === "playing" || ttsStatus === "paused";
   const showCompletion = !!completionInfo && ttsStatus === "idle";
+  const canEdit = !!onSectionUpdate && !isTTSActive;
+  const annotationCount = sectionMeta?.annotations?.length ?? 0;
+  const versionCount = sectionMeta?.versions?.length ?? 0;
 
   const ttsButton = () => {
     if (!showTTS) return null;
@@ -163,7 +193,7 @@ export function AnswerSection({
           className="flex items-center gap-2 min-w-0 flex-1 text-left py-1 -my-1 cursor-pointer"
           onClick={() => setOpen(!open)}
         >
-          {icon && <span className="text-base shrink-0">{icon}</span>}
+          {icon && <Icon name={icon} size={16} className="text-amber-600 shrink-0" />}
           <span className="font-semibold text-sm text-zinc-800 truncate">
             {title}
           </span>
@@ -174,6 +204,57 @@ export function AnswerSection({
           />
         </button>
         <div className="shrink-0 ml-2 flex items-center gap-1">
+          {/* Edit / Annotate / Regenerate / History buttons */}
+          {canEdit && mode === "view" && (
+            <>
+              <button
+                type="button"
+                onClick={() => setMode("edit")}
+                className="p-1 rounded-md text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                title="编辑内容"
+              >
+                <Icon name="edit_note" size={16} />
+              </button>
+              {onAnnotationAdd && (
+                <button
+                  type="button"
+                  onClick={() => { setOpen(true); setShowAnnotations(!showAnnotations); }}
+                  className={`p-1 rounded-md transition-colors relative ${showAnnotations ? "text-amber-600 bg-amber-50" : "text-zinc-400 hover:text-amber-600 hover:bg-amber-50"}`}
+                  title="批注笔记"
+                >
+                  <Icon name="note_add" size={16} />
+                  {annotationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center">
+                      {annotationCount}
+                    </span>
+                  )}
+                </button>
+              )}
+              {settings && questionContent && (
+                <button
+                  type="button"
+                  onClick={() => setRegenerateOpen(true)}
+                  className="p-1 rounded-md text-zinc-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                  title="@AI 重新生成"
+                >
+                  <Icon name="auto_awesome" size={16} />
+                </button>
+              )}
+              {versionCount > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(true)}
+                  className="p-1 rounded-md text-zinc-400 hover:text-blue-600 hover:bg-blue-50 transition-colors relative"
+                  title="版本历史"
+                >
+                  <Icon name="history" size={16} />
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    {versionCount}
+                  </span>
+                </button>
+              )}
+            </>
+          )}
           {ttsButton()}
           <CopyButton text={content} variant="ghost" />
         </div>
@@ -204,10 +285,61 @@ export function AnswerSection({
               onResume={onResume}
               onStop={onStop}
             />
+          ) : mode === "edit" ? (
+            <SectionEditor
+              initialContent={content}
+              onSave={(newContent) => {
+                onSectionUpdate?.(newContent, "manual_edit");
+                setMode("view");
+              }}
+              onCancel={() => setMode("view")}
+            />
           ) : (
             <MarkdownRenderer content={content} />
           )}
+
+          {/* Annotation panel — shown below content in view mode */}
+          {showAnnotations && mode === "view" && !isTTSActive && (
+            <SectionAnnotationPanel
+              annotations={sectionMeta?.annotations ?? []}
+              onAdd={(text) => onAnnotationAdd?.(text)}
+              onDelete={(id) => onAnnotationDelete?.(id)}
+              onUpdate={(id, text) => onAnnotationUpdate?.(id, text)}
+            />
+          )}
         </div>
+      )}
+
+      {/* Regenerate dialog */}
+      {regenerateOpen && sectionKey && settings && questionContent && (
+        <SectionRegenerateDialog
+          open={regenerateOpen}
+          onOpenChange={setRegenerateOpen}
+          sectionTitle={title}
+          sectionKey={sectionKey}
+          currentContent={content}
+          questionContent={questionContent}
+          settings={settings}
+          onRegenerated={(newContent) => {
+            onSectionUpdate?.(newContent, "ai_regenerate");
+            setRegenerateOpen(false);
+          }}
+        />
+      )}
+
+      {/* Version history dialog */}
+      {historyOpen && sectionMeta && (
+        <VersionHistoryDialog
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+          sectionTitle={title}
+          versions={sectionMeta.versions}
+          currentVersionId={sectionMeta.currentVersionId}
+          onRestore={(versionId) => {
+            onVersionRestore?.(versionId);
+            setHistoryOpen(false);
+          }}
+        />
       )}
     </div>
   );
@@ -607,23 +739,25 @@ function CompletionView({
       {/* Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6 gap-5">
         <div className="text-center space-y-4">
-          <div className="text-3xl">✅</div>
+          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+              <Icon name="check_circle" size={32} className="text-emerald-500" />
+            </div>
           <p className="text-white text-lg font-semibold tracking-wide">朗读完成</p>
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-center gap-2 text-white/80">
-              <span>⏱️</span>
+              <Icon name="timer" size={16} className="text-white/80" />
               <span>用时 {formatTime(completionInfo.elapsed)}</span>
             </div>
             <div className="flex items-center justify-center gap-2 text-white/60">
-              <span>📝</span>
+              <Icon name="audio_file" size={16} className="text-white/60" />
               <span>
                 音频时长 {formatTime(completionInfo.audioDur)}
                 {completionInfo.rate !== 1 && `（${completionInfo.rate}x 倍速）`}
               </span>
             </div>
             <div className="flex items-center justify-center gap-2 text-white/50">
-              <span>🎙️</span>
+              <Icon name="graphic_eq" size={16} className="text-white/50" />
               <span>音色：{completionInfo.voiceName}</span>
             </div>
           </div>

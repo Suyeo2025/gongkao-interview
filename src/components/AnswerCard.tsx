@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { stripMetaBlock, parseSections } from "@/lib/parser";
 import { TTSStatus, CompletionInfo } from "@/hooks/useTTS";
 import { WordTimestamp, CachedVoiceInfo } from "@/lib/audio-cache";
+import { SectionKey, SectionVersion, Settings } from "@/lib/types";
 
 interface AnswerCardProps {
   pair: QAPair;
@@ -39,6 +40,13 @@ interface AnswerCardProps {
   // Completion
   completionInfo?: CompletionInfo | null;
   onClearCompletion?: () => void;
+  // Annotation / edit / version
+  onSectionUpdate?: (sectionKey: SectionKey, newContent: string, source: SectionVersion["source"], instruction?: string) => void;
+  onAnnotationAdd?: (sectionKey: SectionKey, content: string) => void;
+  onAnnotationDelete?: (sectionKey: SectionKey, annotationId: string) => void;
+  onAnnotationUpdate?: (sectionKey: SectionKey, annotationId: string, content: string) => void;
+  onVersionRestore?: (sectionKey: SectionKey, versionId: string) => void;
+  settings?: Settings;
 }
 
 export function AnswerCard({
@@ -64,6 +72,12 @@ export function AnswerCard({
   cachedVoices,
   completionInfo,
   onClearCompletion,
+  onSectionUpdate,
+  onAnnotationAdd,
+  onAnnotationDelete,
+  onAnnotationUpdate,
+  onVersionRestore,
+  settings: cardSettings,
 }: AnswerCardProps) {
   const { question, answer } = pair;
   const displayRaw = isStreaming ? streamText : stripMetaBlock(answer.rawMarkdown);
@@ -151,23 +165,25 @@ export function AnswerCard({
 
       {/* Key points highlight */}
       {answer.metadata?.keyPoints && answer.metadata.keyPoints.length > 0 && !isStreaming && (
-        <div className="px-3 py-3 sm:px-5 sm:py-4 md:px-6 bg-gradient-to-r from-amber-50/80 to-amber-50/30 border-b border-amber-100/40">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon name="emoji_events" size={16} className="text-amber-600" />
-            <span className="text-xs font-semibold text-amber-800 tracking-wide">核心得分点</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {answer.metadata.keyPoints.map((point, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/70 border border-amber-100/60"
-              >
-                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                  {i + 1}
+        <div className="px-3 py-2.5 sm:px-5 sm:py-3 md:px-6 border-b border-zinc-100/60">
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Icon name="target" size={14} className="text-amber-500" />
+              <span className="text-[11px] font-medium text-zinc-400">得分点</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {answer.metadata.keyPoints.map((point, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-100/80"
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-amber-500 text-white text-[8px] font-bold flex items-center justify-center shrink-0">
+                    {i + 1}
+                  </span>
+                  {point}
                 </span>
-                <span className="text-xs text-stone-700 font-medium leading-tight">{point}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -183,48 +199,49 @@ export function AnswerCard({
           </div>
         ) : (
           <div>
-            <AnswerSection
-              title="考生作答（现场口吻）"
-              content={sections.answer}
-              icon="🎙️"
-              ttsStatus={ttsStatus}
-              onSpeak={onSpeak}
-              onPause={onPause}
-              onResume={onResume}
-              onStop={onStop}
-              timestamps={timestamps}
-              currentWordIndex={currentWordIndex}
-              plainText={plainText}
-              voiceName={voiceName}
-              ttsRate={ttsRate}
-              onSetRate={onSetRate}
-              onSeek={onSeek}
-              duration={duration}
-              currentTime={currentTime}
-              cachedVoices={cachedVoices}
-              completionInfo={completionInfo}
-              onClearCompletion={onClearCompletion}
-            />
-            <AnswerSection
-              title="作答复盘（10秒速览）"
-              content={sections.review}
-              icon="📊"
-            />
-            <AnswerSection
-              title="通用模板（可复用）"
-              content={sections.template}
-              icon="📋"
-            />
-            <AnswerSection
-              title="踩坑提醒"
-              content={sections.pitfalls}
-              icon="⚠️"
-            />
-            <AnswerSection
-              title="注意事项"
-              content={sections.notes}
-              icon="📌"
-            />
+            {([
+              { key: "answer" as const, title: "考生作答（现场口吻）", icon: "mic", defaultOpen: true },
+              { key: "review" as const, title: "作答复盘（10秒速览）", icon: "analytics", defaultOpen: true },
+              { key: "template" as const, title: "通用模板（可复用）", icon: "content_copy", defaultOpen: true },
+              { key: "pitfalls" as const, title: "踩坑提醒", icon: "warning", defaultOpen: true },
+              { key: "notes" as const, title: "注意事项", icon: "push_pin", defaultOpen: true },
+            ] as const).map(({ key, title: secTitle, icon: secIcon, defaultOpen: secOpen }) => (
+              <AnswerSection
+                key={key}
+                title={secTitle}
+                content={sections[key]}
+                icon={secIcon}
+                defaultOpen={secOpen}
+                sectionKey={key}
+                sectionMeta={answer.sectionMeta?.[key]}
+                questionContent={question.content}
+                settings={cardSettings}
+                onSectionUpdate={onSectionUpdate ? (c, s, i) => onSectionUpdate(key, c, s, i) : undefined}
+                onAnnotationAdd={onAnnotationAdd ? (c) => onAnnotationAdd(key, c) : undefined}
+                onAnnotationDelete={onAnnotationDelete ? (id) => onAnnotationDelete(key, id) : undefined}
+                onAnnotationUpdate={onAnnotationUpdate ? (id, c) => onAnnotationUpdate(key, id, c) : undefined}
+                onVersionRestore={onVersionRestore ? (vid) => onVersionRestore(key, vid) : undefined}
+                {...(key === "answer" ? {
+                  ttsStatus,
+                  onSpeak,
+                  onPause,
+                  onResume,
+                  onStop,
+                  timestamps,
+                  currentWordIndex,
+                  plainText,
+                  voiceName,
+                  ttsRate,
+                  onSetRate,
+                  onSeek,
+                  duration,
+                  currentTime,
+                  cachedVoices,
+                  completionInfo,
+                  onClearCompletion,
+                } : {})}
+              />
+            ))}
           </div>
         )}
       </div>
