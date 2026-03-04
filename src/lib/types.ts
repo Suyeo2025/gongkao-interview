@@ -261,6 +261,8 @@ export interface ExamEvaluation {
   strengths: string[];
   weaknesses: string[];
   suggestions: string;
+  /** 完整导师口头评价（eval块外的文本），用于TTS朗读 */
+  fullCommentary?: string;
   modelUsed: string;
   evaluatedAt: string;
 }
