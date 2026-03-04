@@ -131,7 +131,9 @@ export function ExamEvaluationView({
   onResumeTTS,
   onStopTTS,
 }: ExamEvaluationViewProps) {
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  // If evaluations exist (from history or just evaluated), default expand first question
+  const hasEvals = evaluations.size > 0 || session.answers.some((a) => !!a.evaluation);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(hasEvals ? 0 : null);
   // Detect if evaluations were already saved in the session
   const alreadySaved = session.answers.some((a) => !!a.evaluation);
   const [savedToHistory, setSavedToHistory] = useState(alreadySaved);
@@ -276,6 +278,16 @@ export function ExamEvaluationView({
                     {/* Evaluation */}
                     {evalResult && (
                       <>
+                        {/* Full mentor commentary (verbal evaluation outside eval block) */}
+                        {evalResult.fullCommentary && (
+                          <div>
+                            <p className="text-[10px] text-purple-600 font-medium mb-1">导师完整点评</p>
+                            <div className="text-xs text-zinc-700 leading-relaxed bg-purple-50/40 rounded-lg px-3 py-2 whitespace-pre-wrap">
+                              {evalResult.fullCommentary}
+                            </div>
+                          </div>
+                        )}
+
                         <div>
                           <p className="text-[10px] text-zinc-400 font-medium mb-1">总评</p>
                           <p className="text-xs text-zinc-700 leading-relaxed">
