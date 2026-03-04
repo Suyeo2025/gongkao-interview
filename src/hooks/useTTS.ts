@@ -180,9 +180,11 @@ export function useTTS() {
               apiKey: settings.dashscopeApiKey,
               model: useModel,
               voice: useVoice,
-              ...(settings.customVoiceTargetModel && !voiceOverride
-                ? { customTargetModel: settings.customVoiceTargetModel }
-                : {}),
+              ...(isMentorMode && settings.mentorCustomTargetModel
+                ? { customTargetModel: settings.mentorCustomTargetModel }
+                : settings.customVoiceTargetModel && !voiceOverride
+                  ? { customTargetModel: settings.customVoiceTargetModel }
+                  : {}),
               ...(useInstruct ? { instruct: useInstruct } : {}),
             }),
           });

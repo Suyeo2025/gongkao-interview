@@ -39,9 +39,6 @@ yarn-error.log*
 # TTS audio cache
 .tts-cache
 
-# Custom voice files
-.custom-voices
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -108,6 +108,7 @@ export interface Settings {
   mentorInstruct: string;
   mentorVoiceName: string;
   mentorRate: number;
+  mentorCustomTargetModel: string; // 自定义音色绑定模型，空=系统音色
   // Exam defaults
   defaultTimePerQuestion: number;
   defaultAdvanceMode: ExamAdvanceMode;
@@ -131,6 +132,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mentorInstruct: "用严厉的语气朗读，像一个很凶的老师在训学生，语速偏快，语调强硬有压迫感，该骂就骂，不留情面",
   mentorVoiceName: "龙安洋 · 阳光男声",
   mentorRate: 1.0,
+  mentorCustomTargetModel: "",
   defaultTimePerQuestion: 120,
   defaultAdvanceMode: "manual",
   defaultTotalExamTime: 1200,
