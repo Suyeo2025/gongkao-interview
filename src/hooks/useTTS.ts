@@ -148,10 +148,14 @@ export function useTTS() {
       const useVoice = voiceOverride ?? settings.ttsVoice;
       const useModel = modelOverride ?? (settings.customVoiceTargetModel || settings.ttsModel);
       const useVoiceName = voiceNameOverride ?? (settings.customVoiceName || useVoice);
+      // Determine instruct and rate: mentor voice uses mentor settings
+      const isMentorMode = voiceOverride === settings.mentorVoice;
+      const useInstruct = isMentorMode ? settings.mentorInstruct : settings.ttsInstruct;
+      const useRate = isMentorMode ? (settings.mentorRate || settings.ttsRate) : settings.ttsRate;
 
       const clean = rawText.trim().slice(0, 2000);
       setPlainText(clean);
-      setRateState(settings.ttsRate);
+      setRateState(useRate);
 
       try {
         const cached = await getCachedAudio(
@@ -179,6 +183,7 @@ export function useTTS() {
               ...(settings.customVoiceTargetModel && !voiceOverride
                 ? { customTargetModel: settings.customVoiceTargetModel }
                 : {}),
+              ...(useInstruct ? { instruct: useInstruct } : {}),
             }),
           });
 
@@ -209,7 +214,7 @@ export function useTTS() {
         urlRef.current = url;
 
         const audio = new Audio(url);
-        audio.playbackRate = settings.ttsRate;
+        audio.playbackRate = useRate;
         audioRef.current = audio;
 
         audio.onloadedmetadata = () => {

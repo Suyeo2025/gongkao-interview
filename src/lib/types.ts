@@ -71,6 +71,11 @@ export interface Answer {
 export interface QAPair {
   question: Question;
   answer: Answer;
+  examSource?: {
+    sessionId: string;
+    questionIndex: number;
+    mode: ExamMode;
+  };
 }
 
 export interface CustomVoice {
@@ -89,14 +94,24 @@ export interface Settings {
   qwenApiKey: string;
   modelName: string;
   temperature: number;
-  // TTS
+  // TTS — 首页朗读
   dashscopeApiKey: string;
   ttsModel: string;
   ttsVoice: string;
   ttsRate: number;
+  ttsInstruct: string;
   // Custom voice: set when a cloned voice is selected, empty for system voices
   customVoiceTargetModel: string;
   customVoiceName: string;
+  // TTS — 导师语音 (独立配置，用于导师口吻回答朗读)
+  mentorVoice: string;
+  mentorInstruct: string;
+  mentorVoiceName: string;
+  mentorRate: number;
+  // Exam defaults
+  defaultTimePerQuestion: number;
+  defaultAdvanceMode: ExamAdvanceMode;
+  defaultTotalExamTime: number; // seconds, default 1200 = 20 min
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -109,8 +124,16 @@ export const DEFAULT_SETTINGS: Settings = {
   ttsModel: "cosyvoice-v3-flash",
   ttsVoice: "longanxuan_v3",
   ttsRate: 1.0,
+  ttsInstruct: "",
   customVoiceTargetModel: "",
   customVoiceName: "",
+  mentorVoice: "longanyang",
+  mentorInstruct: "用严厉的语气朗读，像一个很凶的老师在训学生，语速偏快，语调强硬有压迫感，该骂就骂，不留情面",
+  mentorVoiceName: "龙安洋 · 阳光男声",
+  mentorRate: 1.0,
+  defaultTimePerQuestion: 120,
+  defaultAdvanceMode: "manual",
+  defaultTotalExamTime: 1200,
 };
 
 export const AVAILABLE_MODELS = [
@@ -189,6 +212,82 @@ export const TTS_VOICE_NAMES: Record<string, string> = {
   longze_v3: "龙泽 · 温暖男声",
   longzhe_v3: "龙哲 · 暖心男声",
 };
+
+// ─── Exam / Question Bank types ─────────────────────────────────
+
+export interface BankQuestion {
+  id: string;
+  content: string;
+  category: QuestionCategory | null;
+  tags: string[];
+  source: "manual" | "file_upload" | "homepage";
+  sourceFile?: string;
+  createdAt: string;
+}
+
+export type ExamAdvanceMode = "auto" | "manual";
+export type ExamMode = "practice" | "exam";
+
+export interface ExamPaperQuestion {
+  bankQuestionId: string;
+  questionContent: string;
+  timeLimit: number;
+  order: number;
+}
+
+export interface ExamPaper {
+  id: string;
+  name: string;
+  questions: ExamPaperQuestion[];
+  advanceMode: ExamAdvanceMode;
+  totalTimeLimit?: number; // seconds, exam mode only (e.g. 1200 = 20 min)
+  createdAt: string;
+}
+
+export type ExamSessionStatus = "in_progress" | "completed";
+
+export interface ASRWord {
+  text: string;
+  beginTime: number;
+  endTime: number;
+  punctuation?: string;
+}
+
+export interface ExamEvaluation {
+  score: number;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string;
+  modelUsed: string;
+  evaluatedAt: string;
+}
+
+export interface ExamQuestionAnswer {
+  questionIndex: number;
+  questionContent: string;
+  asrTranscript: string;
+  asrWords: ASRWord[];
+  timeSpent: number;
+  timeLimit: number;
+  startedAt: string;
+  finishedAt: string;
+  evaluation?: ExamEvaluation;
+}
+
+export interface ExamSession {
+  id: string;
+  paperId: string;
+  paperName: string;
+  mode: ExamMode;
+  status: ExamSessionStatus;
+  currentQuestionIndex: number;
+  answers: ExamQuestionAnswer[];
+  startedAt: string;
+  finishedAt?: string;
+  totalScore?: number;
+  createdAt: string;
+}
 
 export const CATEGORY_COLORS: Record<QuestionCategory, string> = {
   综合分析: "bg-blue-50 text-blue-600 border-blue-200/60",

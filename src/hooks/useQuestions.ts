@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { QAPair, QuestionCategory } from "@/lib/types";
 import { getHistory, saveHistory, deleteQAPair } from "@/lib/storage";
+import { deleteCachedAudio } from "@/lib/audio-cache";
 
 export function useQuestions() {
   const [history, setHistory] = useState<QAPair[]>([]);
@@ -15,6 +16,8 @@ export function useQuestions() {
 
   const addPair = useCallback((pair: QAPair) => {
     setHistory((prev) => {
+      // Prevent duplicate question.id
+      if (prev.some((p) => p.question.id === pair.question.id)) return prev;
       const next = [pair, ...prev];
       saveHistory(next);
       return next;
@@ -36,6 +39,11 @@ export function useQuestions() {
 
   const removePair = useCallback((questionId: string) => {
     setHistory((prev) => {
+      // Clean up TTS cache for the deleted answer
+      const pair = prev.find((p) => p.question.id === questionId);
+      if (pair) {
+        deleteCachedAudio(pair.answer.id).catch(() => {});
+      }
       const next = deleteQAPair(questionId);
       return next;
     });

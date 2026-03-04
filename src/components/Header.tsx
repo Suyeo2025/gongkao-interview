@@ -44,6 +44,15 @@ export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
       <div className="flex items-center gap-0.5 sm:gap-1">
         <Button
           variant="ghost"
+          size="sm"
+          onClick={() => router.push("/exam")}
+          className="gap-1.5 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-10 px-2.5"
+        >
+          <Icon name="quiz" size={20} />
+          <span className="hidden sm:inline text-xs font-medium">模考</span>
+        </Button>
+        <Button
+          variant="ghost"
           size="icon"
           onClick={onOpenSettings}
           className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"

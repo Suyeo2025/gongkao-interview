@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -270,13 +271,16 @@ export function SettingsModal({
         customVoiceName: custom.name + " (自定义)",
       });
     } else {
+      // Clear instruct if switching to non-instruct voice
+      const isInstruct = voices.find((v) => v.id === voiceId)?.instruct;
       onUpdate({
         ttsVoice: voiceId,
         customVoiceTargetModel: "",
         customVoiceName: "",
+        ...(!isInstruct ? { ttsInstruct: "" } : {}),
       });
     }
-  }, [customVoices, onUpdate]);
+  }, [customVoices, voices, onUpdate]);
 
   // ─── Data management ──────────────────────────────────────────
 
@@ -575,6 +579,30 @@ export function SettingsModal({
                   </Select>
                 )}
 
+                {/* Instruct input — shown when selected voice supports instruct */}
+                {(() => {
+                  const selectedVoice = voices.find((v) => v.id === settings.ttsVoice);
+                  if (!selectedVoice?.instruct) return null;
+                  return (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <p className="text-xs text-zinc-500">语音指令</p>
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">Instruct</span>
+                      </div>
+                      <Textarea
+                        value={settings.ttsInstruct}
+                        onChange={(e) => onUpdate({ ttsInstruct: e.target.value })}
+                        placeholder="例：用温柔专业的语气朗读，语速适中，像面试导师在指导学生"
+                        className="min-h-[60px] rounded-xl text-sm resize-none"
+                        rows={2}
+                      />
+                      <p className="text-[10px] text-zinc-400 mt-1">
+                        控制语音风格，如语气、情感、语速节奏等。仅支持标有 Instruct 标签的音色。
+                      </p>
+                    </div>
+                  );
+                })()}
+
                 <div>
                   <p className="text-xs text-zinc-500 mb-1.5">播放速度</p>
                   <div className="flex gap-1">
@@ -608,9 +636,104 @@ export function SettingsModal({
               </div>
             </div>
 
-            {/* === Section 3: Temperature === */}
+            {/* === Section 3: Mentor Voice === */}
             <div className="space-y-3">
-              {sectionHeader(3, "创造性调节", true, "tune")}
+              {sectionHeader(3, "导师语音", !!settings.dashscopeApiKey, "school")}
+
+              <div className="ml-8 space-y-3">
+                <p className="text-[10px] text-zinc-400">
+                  独立于首页朗读，用于导师口吻回答的语音合成。需选择支持 Instruct 的音色。
+                </p>
+
+                {/* Mentor voice selector — only instruct-capable voices */}
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1.5">导师音色</p>
+                  <Select value={settings.mentorVoice} onValueChange={(voiceId) => {
+                    const v = voices.find((v) => v.id === voiceId);
+                    onUpdate({
+                      mentorVoice: voiceId,
+                      mentorVoiceName: v?.name || voiceId,
+                    });
+                  }}>
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder="选择导师音色" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Instruct voices first (recommended) */}
+                      {(voices.length > 0 ? voices : TTS_VOICES_FALLBACK)
+                        .filter((v) => v.instruct)
+                        .map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{v.name}</span>
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">Instruct</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      <div className="border-t border-zinc-100 my-1" />
+                      {/* Non-instruct voices */}
+                      {(voices.length > 0 ? voices : TTS_VOICES_FALLBACK)
+                        .filter((v) => !v.instruct)
+                        .map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{v.name}</span>
+                              <span className="text-[10px] text-zinc-400">{v.category}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Mentor instruct text */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <p className="text-xs text-zinc-500">语音指令</p>
+                    {voices.find((v) => v.id === settings.mentorVoice)?.instruct && (
+                      <span className="text-[9px] px-1 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">Instruct 生效中</span>
+                    )}
+                  </div>
+                  <Textarea
+                    value={settings.mentorInstruct}
+                    onChange={(e) => onUpdate({ mentorInstruct: e.target.value })}
+                    placeholder="例：用温柔专业的语气朗读，像面试导师在指导学生"
+                    className="min-h-[60px] rounded-xl text-sm resize-none"
+                    rows={2}
+                  />
+                  {!voices.find((v) => v.id === settings.mentorVoice)?.instruct && settings.mentorInstruct && (
+                    <p className="text-[10px] text-amber-600 mt-1">
+                      当前音色不支持 Instruct，指令不会生效。请选择标有 Instruct 的音色。
+                    </p>
+                  )}
+                </div>
+
+                {/* Mentor rate */}
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1.5">导师语速</p>
+                  <div className="flex gap-1">
+                    {TTS_RATES.map((r) => (
+                      <button
+                        key={r.value}
+                        type="button"
+                        onClick={() => onUpdate({ mentorRate: r.value })}
+                        className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                          settings.mentorRate === r.value
+                            ? "bg-blue-500 text-white shadow-sm"
+                            : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* === Section 4: Temperature === */}
+            <div className="space-y-3">
+              {sectionHeader(4, "创造性调节", true, "tune")}
 
               <div className="ml-8 space-y-2">
                 <div className="flex items-center justify-between">
@@ -635,9 +758,9 @@ export function SettingsModal({
               </div>
             </div>
 
-            {/* === Section 4: Data Management === */}
+            {/* === Section 5: Data Management === */}
             <div className="space-y-3">
-              {sectionHeader(4, "数据管理", true, "folder_open")}
+              {sectionHeader(5, "数据管理", true, "folder_open")}
 
               <div className="ml-8 space-y-2">
                 <div className="flex gap-2">
