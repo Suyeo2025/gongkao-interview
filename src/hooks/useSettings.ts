@@ -23,11 +23,15 @@ export function useSettings() {
   );
 
   const reset = useCallback(() => {
-    const apiKey = settings.geminiApiKey;
-    const next = { ...DEFAULT_SETTINGS, geminiApiKey: apiKey };
+    const next = {
+      ...DEFAULT_SETTINGS,
+      geminiApiKey: settings.geminiApiKey,
+      qwenApiKey: settings.qwenApiKey,
+      dashscopeApiKey: settings.dashscopeApiKey,
+    };
     setSettings(next);
     saveSettings(next);
-  }, [settings.geminiApiKey]);
+  }, [settings.geminiApiKey, settings.qwenApiKey, settings.dashscopeApiKey]);
 
   return { settings, update, reset, loaded };
 }

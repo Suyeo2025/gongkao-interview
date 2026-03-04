@@ -18,6 +18,8 @@ interface SidebarProps {
     favorites: number;
     byCategory: Record<string, number>;
   };
+  /** Answer ID currently playing TTS audio */
+  ttsActiveId?: string | null;
 }
 
 export function Sidebar({
@@ -26,6 +28,7 @@ export function Sidebar({
   onSelect,
   onToggleFavorite,
   stats,
+  ttsActiveId,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<QuestionCategory | "all" | "favorites">("all");
@@ -173,11 +176,14 @@ export function Sidebar({
                           {pair.question.isFavorite && (
                             <Icon name="star" size={16} fill className="text-amber-400 shrink-0 mt-0.5" />
                           )}
-                          <span className="line-clamp-2 leading-relaxed">
+                          <span className="line-clamp-2 leading-relaxed flex-1">
                             <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
                             {pair.question.content.slice(0, 50)}
                             {pair.question.content.length > 50 ? "..." : ""}
                           </span>
+                          {ttsActiveId && ttsActiveId === pair.answer.id && (
+                            <Icon name="volume_up" size={16} className="text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+                          )}
                         </button>
                       ))}
                     </div>
@@ -200,11 +206,14 @@ export function Sidebar({
                   {pair.question.isFavorite && (
                     <Icon name="star" size={16} fill className="text-amber-400 shrink-0 mt-0.5" />
                   )}
-                  <span className="line-clamp-2 leading-relaxed">
+                  <span className="line-clamp-2 leading-relaxed flex-1">
                     <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
                     {pair.question.content.slice(0, 50)}
                     {pair.question.content.length > 50 ? "..." : ""}
                   </span>
+                  {ttsActiveId && ttsActiveId === pair.answer.id && (
+                    <Icon name="volume_up" size={16} className="text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+                  )}
                 </button>
               ))}
             </div>

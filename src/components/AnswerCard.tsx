@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { QAPair } from "@/lib/types";
 import { CategoryBadge } from "./CategoryBadge";
 import { CopyButton } from "./CopyButton";
@@ -8,7 +9,9 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "./Icon";
 import { Button } from "@/components/ui/button";
-import { stripMetaBlock } from "@/lib/parser";
+import { stripMetaBlock, parseSections } from "@/lib/parser";
+import { TTSStatus, CompletionInfo } from "@/hooks/useTTS";
+import { WordTimestamp, CachedVoiceInfo } from "@/lib/audio-cache";
 
 interface AnswerCardProps {
   pair: QAPair;
@@ -16,6 +19,26 @@ interface AnswerCardProps {
   streamText?: string;
   onToggleFavorite?: (id: string) => void;
   onDelete?: (id: string) => void;
+  // TTS
+  ttsStatus?: TTSStatus;
+  onSpeak?: (voice?: string, model?: string, voiceName?: string) => void;
+  onPause?: () => void;
+  onResume?: () => void;
+  onStop?: () => void;
+  timestamps?: WordTimestamp[];
+  currentWordIndex?: number;
+  plainText?: string;
+  // TTS controls
+  voiceName?: string;
+  ttsRate?: number;
+  onSetRate?: (rate: number) => void;
+  onSeek?: (time: number) => void;
+  duration?: number;
+  currentTime?: number;
+  cachedVoices?: CachedVoiceInfo[];
+  // Completion
+  completionInfo?: CompletionInfo | null;
+  onClearCompletion?: () => void;
 }
 
 export function AnswerCard({
@@ -24,17 +47,45 @@ export function AnswerCard({
   streamText = "",
   onToggleFavorite,
   onDelete,
+  ttsStatus,
+  onSpeak,
+  onPause,
+  onResume,
+  onStop,
+  timestamps = [],
+  currentWordIndex = -1,
+  plainText = "",
+  voiceName,
+  ttsRate = 1,
+  onSetRate,
+  onSeek,
+  duration = 0,
+  currentTime = 0,
+  cachedVoices,
+  completionInfo,
+  onClearCompletion,
 }: AnswerCardProps) {
   const { question, answer } = pair;
   const displayRaw = isStreaming ? streamText : stripMetaBlock(answer.rawMarkdown);
 
+  // Re-parse sections from rawMarkdown to ensure content is always available
+  const sections = useMemo(() => {
+    if (isStreaming) return answer.sections;
+    // Use stored sections if they have content, otherwise re-parse from raw
+    const stored = answer.sections;
+    const hasStoredContent =
+      stored.answer.trim() || stored.review.trim() || stored.template.trim() ||
+      stored.pitfalls.trim() || stored.notes.trim();
+    return hasStoredContent ? stored : parseSections(answer.rawMarkdown);
+  }, [isStreaming, answer.sections, answer.rawMarkdown]);
+
   const hasSections =
     !isStreaming &&
-    (answer.sections.answer ||
-      answer.sections.review ||
-      answer.sections.template ||
-      answer.sections.pitfalls ||
-      answer.sections.notes);
+    (sections.answer.trim() ||
+      sections.review.trim() ||
+      sections.template.trim() ||
+      sections.pitfalls.trim() ||
+      sections.notes.trim());
 
   const wordCount = isStreaming ? streamText.length : (answer.metadata?.wordCount ?? displayRaw.length);
 
@@ -134,27 +185,44 @@ export function AnswerCard({
           <div>
             <AnswerSection
               title="考生作答（现场口吻）"
-              content={answer.sections.answer}
+              content={sections.answer}
               icon="🎙️"
+              ttsStatus={ttsStatus}
+              onSpeak={onSpeak}
+              onPause={onPause}
+              onResume={onResume}
+              onStop={onStop}
+              timestamps={timestamps}
+              currentWordIndex={currentWordIndex}
+              plainText={plainText}
+              voiceName={voiceName}
+              ttsRate={ttsRate}
+              onSetRate={onSetRate}
+              onSeek={onSeek}
+              duration={duration}
+              currentTime={currentTime}
+              cachedVoices={cachedVoices}
+              completionInfo={completionInfo}
+              onClearCompletion={onClearCompletion}
             />
             <AnswerSection
               title="作答复盘（10秒速览）"
-              content={answer.sections.review}
+              content={sections.review}
               icon="📊"
             />
             <AnswerSection
               title="通用模板（可复用）"
-              content={answer.sections.template}
+              content={sections.template}
               icon="📋"
             />
             <AnswerSection
               title="踩坑提醒"
-              content={answer.sections.pitfalls}
+              content={sections.pitfalls}
               icon="⚠️"
             />
             <AnswerSection
               title="注意事项"
-              content={answer.sections.notes}
+              content={sections.notes}
               icon="📌"
             />
           </div>

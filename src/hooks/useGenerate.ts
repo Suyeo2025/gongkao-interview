@@ -34,7 +34,8 @@ export function useGenerate() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             question,
-            apiKey: settings.geminiApiKey,
+            provider: settings.textProvider,
+            apiKey: settings.textProvider === "gemini" ? settings.geminiApiKey : settings.qwenApiKey,
             config: {
               modelName: settings.modelName,
               temperature: settings.temperature,

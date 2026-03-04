@@ -9,9 +9,10 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { useSettings } from "@/hooks/useSettings";
 import { useQuestions } from "@/hooks/useQuestions";
 import { useGenerate } from "@/hooks/useGenerate";
+import { useTTS } from "@/hooks/useTTS";
 import { parseSections, parseMetadata, stripMetaBlock } from "@/lib/parser";
-import { QAPair, Question, Answer } from "@/lib/types";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { QAPair, Question, Answer, TTS_VOICE_NAMES } from "@/lib/types";
+import { CachedVoiceInfo } from "@/lib/audio-cache";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
@@ -20,20 +21,26 @@ export default function Home() {
   const { settings, update: updateSettings, reset: resetSettings, loaded: settingsLoaded } = useSettings();
   const { history, addPair, toggleFavorite, removePair, stats, loaded: historyLoaded } = useQuestions();
   const { isGenerating, streamText, error, generate, stop, clearError } = useGenerate();
+  const { status: ttsStatus, error: ttsError, activeAnswerId: ttsActiveId, timestamps: ttsTimestamps, currentWordIndex: ttsWordIndex, plainText: ttsPlainText, duration: ttsDuration, currentTime: ttsCurrentTime, rate: ttsRate, completionInfo: ttsCompletionInfo, speak, pause, resume, stop: stopTTS, setRate: setTTSRate, seek: seekTTS, clearCompletion: clearTTSCompletion, listCachedVoices: listCached, clearError: clearTTSError } = useTTS();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [currentStreamPair, setCurrentStreamPair] = useState<QAPair | null>(null);
+  const [cachedVoices, setCachedVoices] = useState<CachedVoiceInfo[]>([]);
 
   const answerEndRef = useRef<HTMLDivElement>(null);
 
+  const hasApiKey = settings.textProvider === "gemini"
+    ? !!settings.geminiApiKey
+    : !!settings.qwenApiKey;
+
   // Auto-open settings if no API key
   useEffect(() => {
-    if (settingsLoaded && !settings.geminiApiKey) {
+    if (settingsLoaded && !hasApiKey) {
       setSettingsOpen(true);
     }
-  }, [settingsLoaded, settings.geminiApiKey]);
+  }, [settingsLoaded, hasApiKey]);
 
   // Auto-scroll during streaming
   useEffect(() => {
@@ -44,7 +51,7 @@ export default function Home() {
 
   const handleSubmit = useCallback(
     async (questionText: string) => {
-      if (!settings.geminiApiKey) {
+      if (!hasApiKey) {
         setSettingsOpen(true);
         return;
       }
@@ -108,7 +115,7 @@ export default function Home() {
         setCurrentStreamPair(null);
       }
     },
-    [settings, history.length, generate, addPair]
+    [settings, history.length, generate, addPair, hasApiKey]
   );
 
   const selectedPair = selectedId
@@ -116,6 +123,30 @@ export default function Home() {
     : null;
 
   const displayPair = currentStreamPair || selectedPair;
+
+  const voiceName = settings.customVoiceName || TTS_VOICE_NAMES[settings.ttsVoice] || settings.ttsVoice;
+
+  // Load cached voices when displayPair changes
+  const displayAnswerId = displayPair?.answer.id;
+  useEffect(() => {
+    if (displayAnswerId && !isGenerating) {
+      listCached(displayAnswerId).then(setCachedVoices);
+    } else {
+      setCachedVoices([]);
+    }
+  }, [displayAnswerId, isGenerating, listCached]);
+
+  const handleSpeak = useCallback(
+    async (voice?: string, model?: string, vName?: string) => {
+      if (!displayPair) return;
+      const text = displayPair.answer.sections.answer;
+      if (!text.trim()) return;
+      await speak(displayPair.answer.id, text, settings, voice, model, vName);
+      // Refresh cached voices list after new generation
+      listCached(displayPair.answer.id).then(setCachedVoices);
+    },
+    [displayPair, settings, speak, listCached]
+  );
 
   const sidebarContent = (
     <Sidebar
@@ -128,6 +159,7 @@ export default function Home() {
       }}
       onToggleFavorite={toggleFavorite}
       stats={stats}
+      ttsActiveId={ttsActiveId}
     />
   );
 
@@ -161,14 +193,14 @@ export default function Home() {
 
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <div className="max-w-3xl mx-auto px-3 py-4 space-y-4 sm:px-5 sm:py-5 sm:space-y-5 md:px-6 md:py-6 lg:px-8 lg:py-8 lg:space-y-6">
               {/* Question input */}
               <QuestionInput
                 onSubmit={handleSubmit}
                 onStop={stop}
                 isGenerating={isGenerating}
-                disabled={!settings.geminiApiKey}
+                disabled={!hasApiKey}
                 modelName={settings.modelName}
                 streamWordCount={streamText.length}
               />
@@ -192,16 +224,56 @@ export default function Home() {
                 </div>
               )}
 
+              {/* TTS error display */}
+              {ttsError && (
+                <div className="bg-orange-50/80 border border-orange-200/60 rounded-xl p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                  <Icon name="volume_off" size={20} className="text-orange-500 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-orange-800">语音合成失败</p>
+                    <p className="text-xs text-orange-600 mt-1 break-all">{ttsError}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={clearTTSError}
+                    className="text-orange-500 hover:text-orange-700 h-8 w-8 shrink-0"
+                  >
+                    <Icon name="close" size={18} />
+                  </Button>
+                </div>
+              )}
+
               {/* Current streaming / selected answer */}
-              {displayPair ? (
+              {displayPair ? ((() => {
+                const isStreaming = isGenerating && !!currentStreamPair;
+                const isTTSTarget = !isStreaming && displayPair.answer.id === ttsActiveId;
+                const showTTS = !isStreaming;
+                return (
                 <AnswerCard
                   pair={displayPair}
-                  isStreaming={isGenerating && !!currentStreamPair}
+                  isStreaming={isStreaming}
                   streamText={streamText}
-                  onToggleFavorite={currentStreamPair ? undefined : toggleFavorite}
-                  onDelete={currentStreamPair ? undefined : removePair}
-                />
-              ) : (
+                  onToggleFavorite={isStreaming ? undefined : toggleFavorite}
+                  onDelete={isStreaming ? undefined : removePair}
+                  ttsStatus={isTTSTarget ? ttsStatus : showTTS ? "idle" : undefined}
+                  onSpeak={showTTS ? handleSpeak : undefined}
+                  onPause={isTTSTarget ? pause : undefined}
+                  onResume={isTTSTarget ? resume : undefined}
+                  onStop={isTTSTarget ? stopTTS : undefined}
+                  timestamps={isTTSTarget ? ttsTimestamps : undefined}
+                  currentWordIndex={isTTSTarget ? ttsWordIndex : undefined}
+                  plainText={isTTSTarget ? ttsPlainText : undefined}
+                  voiceName={voiceName}
+                  ttsRate={ttsRate}
+                  onSetRate={isTTSTarget ? setTTSRate : undefined}
+                  onSeek={isTTSTarget ? seekTTS : undefined}
+                  duration={isTTSTarget ? ttsDuration : undefined}
+                  currentTime={isTTSTarget ? ttsCurrentTime : undefined}
+                  cachedVoices={showTTS ? cachedVoices : undefined}
+                  completionInfo={isTTSTarget || showTTS ? ttsCompletionInfo : undefined}
+                  onClearCompletion={clearTTSCompletion}
+                />);
+              })()) : (
                 /* Empty state */
                 !isGenerating && (
                   <div className="text-center py-10 sm:py-14 lg:py-20">
@@ -214,7 +286,7 @@ export default function Home() {
                     <p className="text-xs sm:text-sm text-zinc-500 max-w-md mx-auto px-4">
                       在上方输入面试题目，AI 将按照五板块结构为你生成标准化作答
                     </p>
-                    {!settings.geminiApiKey && (
+                    {!hasApiKey && (
                       <Button
                         variant="outline"
                         className="mt-4 text-amber-700 border-amber-200 h-10"
@@ -229,7 +301,7 @@ export default function Home() {
 
               <div ref={answerEndRef} />
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
 

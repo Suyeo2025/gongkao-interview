@@ -80,7 +80,9 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
           ),
           hr: () => <hr className="my-3 border-zinc-100" />,
         }}
-      />
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }

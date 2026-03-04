@@ -87,3 +87,25 @@ export function stripMetaBlock(raw: string): string {
 export function countWords(text: string): number {
   return text.replace(/\s/g, "").length;
 }
+
+/** Strip markdown formatting to plain text for TTS.
+ *  Only removes markdown syntax, keeps original text structure intact. */
+export function markdownToPlainText(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/_([^_]+)_/g, "$1")
+    .replace(/~~([^~]+)~~/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "")
+    .replace(/>\s?/gm, "")
+    .replace(/\|[^\n]+\|/g, "")
+    .replace(/[-=]{3,}/g, "")
+    .trim();
+}

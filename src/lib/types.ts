@@ -45,16 +45,44 @@ export interface QAPair {
   answer: Answer;
 }
 
+export interface CustomVoice {
+  voiceId: string;       // DashScope 返回的 voice_id
+  name: string;          // 用户起的名字
+  targetModel: string;   // 创建时绑定的 TTS 模型
+  createdAt: string;
+}
+
+export type TextProvider = "gemini" | "qwen";
+
 export interface Settings {
+  // Text generation
+  textProvider: TextProvider;
   geminiApiKey: string;
+  qwenApiKey: string;
   modelName: string;
   temperature: number;
+  // TTS
+  dashscopeApiKey: string;
+  ttsModel: string;
+  ttsVoice: string;
+  ttsRate: number;
+  // Custom voice: set when a cloned voice is selected, empty for system voices
+  customVoiceTargetModel: string;
+  customVoiceName: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  textProvider: "gemini",
   geminiApiKey: "",
+  qwenApiKey: "",
   modelName: "gemini-2.5-flash",
   temperature: 0.7,
+  dashscopeApiKey: "",
+  ttsModel: "cosyvoice-v3-flash",
+  ttsVoice: "longanxuan_v3",
+  ttsRate: 1.0,
+  customVoiceTargetModel: "",
+  customVoiceName: "",
 };
 
 export const AVAILABLE_MODELS = [
@@ -63,6 +91,76 @@ export const AVAILABLE_MODELS = [
   { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite (最快)" },
   { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
 ];
+
+export const QWEN_MODELS = [
+  { value: "qwen-max", label: "Qwen Max (最强)" },
+  { value: "qwen-plus", label: "Qwen Plus (推荐)" },
+  { value: "qwen-turbo", label: "Qwen Turbo (最快)" },
+];
+
+export const TTS_MODELS = [
+  { value: "cosyvoice-v3-flash", label: "CosyVoice v3 Flash (推荐)" },
+  { value: "cosyvoice-v3-plus", label: "CosyVoice v3 Plus" },
+];
+
+// Fallback voices - used when API fetch fails
+export const TTS_VOICES_FALLBACK = [
+  { id: "longanxuan_v3", name: "龙安宣 · 经典直播女", category: "直播", instruct: false, timestamp: true },
+  { id: "longanyang", name: "龙安洋 · 阳光男声", category: "社交陪伴", instruct: true, timestamp: true },
+  { id: "longanhuan", name: "龙安欢 · 活泼女声", category: "社交陪伴", instruct: true, timestamp: true },
+];
+
+export const TTS_RATES = [
+  { value: 0.5, label: "0.5" },
+  { value: 0.75, label: "0.75" },
+  { value: 0.85, label: "0.85" },
+  { value: 1.0, label: "1.0" },
+  { value: 1.1, label: "1.1" },
+  { value: 1.25, label: "1.25" },
+  { value: 1.4, label: "1.4" },
+  { value: 1.5, label: "1.5" },
+  { value: 1.75, label: "1.75" },
+  { value: 2.0, label: "2.0" },
+];
+
+/** Voice ID → display name map (client-side lookup) */
+export const TTS_VOICE_NAMES: Record<string, string> = {
+  longanxuan_v3: "龙安宣 · 经典直播女",
+  longanyang: "龙安洋 · 阳光男声",
+  longanhuan: "龙安欢 · 活泼女声",
+  longhuhu_v3: "龙呼呼 · 天真女童",
+  longpaopao_v3: "龙泡泡 · 活力童声",
+  longjielidou_v3: "龙杰力豆 · 阳光男童",
+  longxian_v3: "龙仙 · 可爱女童",
+  longling_v3: "龙铃 · 天真女童",
+  longshanshan_v3: "龙闪闪 · 故事童声",
+  longniuniu_v3: "龙牛牛 · 阳光男童",
+  longjiaxin_v3: "龙嘉欣 · 粤语女声",
+  longjiayi_v3: "龙嘉怡 · 粤语女声",
+  longanyue_v3: "龙安粤 · 粤语男声",
+  longlaotie_v3: "龙老铁 · 东北男声",
+  longshange_v3: "龙陕哥 · 陕西男声",
+  longanmin_v3: "龙安闽 · 闽南女声",
+  longfei_v3: "龙飞 · 诗词朗诵",
+  longyingxiao_v3: "龙应笑 · 电销女声",
+  longyingxun_v3: "龙应询 · 客服男声",
+  longyingjing_v3: "龙应静 · 客服女声",
+  longyingling_v3: "龙应聆 · 温柔客服",
+  longyingtao_v3: "龙应桃 · 甜美客服",
+  longxiaochun_v3: "龙小淳 · 温柔助手",
+  longxiaoxia_v3: "龙小夏 · 活力助手",
+  longyumi_v3: "YUMI · 元气助手",
+  longanyun_v3: "龙安昀 · 知性助手",
+  longanwen_v3: "龙安温 · 温暖男声",
+  longanli_v3: "龙安莉 · 亲切女声",
+  longanlang_v3: "龙安朗 · 标准男声",
+  longyingmu_v3: "龙应沐 · 沉稳男声",
+  longantai_v3: "龙安台 · 台湾女声",
+  longhua_v3: "龙华 · 甜美女声",
+  longcheng_v3: "龙橙 · 阳光男声",
+  longze_v3: "龙泽 · 温暖男声",
+  longzhe_v3: "龙哲 · 暖心男声",
+};
 
 export const CATEGORY_COLORS: Record<QuestionCategory, string> = {
   综合分析: "bg-blue-50 text-blue-600 border-blue-200/60",
