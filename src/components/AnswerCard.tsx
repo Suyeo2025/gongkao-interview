@@ -135,31 +135,26 @@ export function AnswerCard({
             <AnswerSection
               title="考生作答（现场口吻）"
               content={answer.sections.answer}
-              defaultOpen={true}
               icon="🎙️"
             />
             <AnswerSection
               title="作答复盘（10秒速览）"
               content={answer.sections.review}
-              defaultOpen={true}
               icon="📊"
             />
             <AnswerSection
               title="通用模板（可复用）"
               content={answer.sections.template}
-              defaultOpen={true}
               icon="📋"
             />
             <AnswerSection
               title="踩坑提醒"
               content={answer.sections.pitfalls}
-              defaultOpen={true}
               icon="⚠️"
             />
             <AnswerSection
               title="注意事项"
               content={answer.sections.notes}
-              defaultOpen={true}
               icon="📌"
             />
           </div>
