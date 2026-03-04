@@ -176,9 +176,11 @@ export function Sidebar({
                           {pair.question.isFavorite && (
                             <Icon name="star" size={16} fill className="text-amber-400 shrink-0 mt-0.5" />
                           )}
+                          {pair.examSource && (
+                            <Icon name="quiz" size={14} className="text-blue-400 shrink-0 mt-0.5" />
+                          )}
                           <span className="line-clamp-2 leading-relaxed flex-1">
-                            <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
-                            {pair.question.content.slice(0, 50)}
+                                    {pair.question.content.slice(0, 50)}
                             {pair.question.content.length > 50 ? "..." : ""}
                           </span>
                           {ttsActiveId && ttsActiveId === pair.answer.id && (
@@ -206,8 +208,10 @@ export function Sidebar({
                   {pair.question.isFavorite && (
                     <Icon name="star" size={16} fill className="text-amber-400 shrink-0 mt-0.5" />
                   )}
+                  {pair.examSource && (
+                    <Icon name="quiz" size={14} className="text-blue-400 shrink-0 mt-0.5" />
+                  )}
                   <span className="line-clamp-2 leading-relaxed flex-1">
-                    <span className="text-zinc-400 font-mono mr-1 text-xs">{pair.question.id}</span>
                     {pair.question.content.slice(0, 50)}
                     {pair.question.content.length > 50 ? "..." : ""}
                   </span>

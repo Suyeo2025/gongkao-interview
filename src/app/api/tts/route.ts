@@ -58,7 +58,7 @@ function extractWords(
 
 export async function POST(req: Request) {
   try {
-    const { text, apiKey, model, voice, customTargetModel } = await req.json();
+    const { text, apiKey, model, voice, customTargetModel, instruct } = await req.json();
 
     if (!apiKey) {
       return Response.json({ error: "请先配置 DashScope API Key" }, { status: 400 });
@@ -129,6 +129,7 @@ export async function POST(req: Request) {
               rate: 1,
               pitch: 1,
               word_timestamp_enabled: true,
+              ...(instruct ? { instruct } : {}),
             },
             input: {},
           },

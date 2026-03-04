@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { QuestionInput } from "@/components/QuestionInput";
@@ -10,19 +11,23 @@ import { useSettings } from "@/hooks/useSettings";
 import { useQuestions } from "@/hooks/useQuestions";
 import { useGenerate } from "@/hooks/useGenerate";
 import { useTTS } from "@/hooks/useTTS";
+import { useQuestionBank } from "@/hooks/useQuestionBank";
 import { parseSections, parseMetadata, stripMetaBlock } from "@/lib/parser";
-import { QAPair, Question, Answer, TTS_VOICE_NAMES, SectionKey, SectionVersion, SectionAnnotation } from "@/lib/types";
+import { QAPair, Question, Answer, QuestionCategory, TTS_VOICE_NAMES, SectionKey, SectionVersion, SectionAnnotation } from "@/lib/types";
 import { ensureSectionMeta, generateId } from "@/lib/storage";
 import { CachedVoiceInfo } from "@/lib/audio-cache";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 
-export default function Home() {
+function HomeInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { settings, update: updateSettings, reset: resetSettings, loaded: settingsLoaded } = useSettings();
   const { history, addPair, updatePair, toggleFavorite, removePair, stats, loaded: historyLoaded } = useQuestions();
   const { isGenerating, streamText, error, generate, stop, clearError } = useGenerate();
   const { status: ttsStatus, error: ttsError, activeAnswerId: ttsActiveId, timestamps: ttsTimestamps, currentWordIndex: ttsWordIndex, plainText: ttsPlainText, duration: ttsDuration, currentTime: ttsCurrentTime, rate: ttsRate, completionInfo: ttsCompletionInfo, speak, pause, resume, stop: stopTTS, setRate: setTTSRate, seek: seekTTS, clearCompletion: clearTTSCompletion, listCachedVoices: listCached, clearError: clearTTSError } = useTTS();
+  const { addQuestion: addToBank, syncFromHistory: syncBankFromHistory, updateCategoryByContent: updateBankCategory } = useQuestionBank();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -43,6 +48,38 @@ export default function Home() {
     }
   }, [settingsLoaded, hasApiKey]);
 
+  // Sync existing homepage questions to bank on first load
+  useEffect(() => {
+    if (historyLoaded && history.length > 0) {
+      syncBankFromHistory(history);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyLoaded]);
+
+  // Auto-generate or select from ?q= param (from question bank click)
+  const autoGenTriggered = useRef(false);
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && settingsLoaded && historyLoaded && !autoGenTriggered.current && !isGenerating) {
+      autoGenTriggered.current = true;
+      router.replace("/", { scroll: false });
+      // Check if already answered — select it instead of re-generating
+      const existing = history.find((p) => p.question.content.trim() === q.trim());
+      if (existing) {
+        setSelectedId(existing.question.id);
+        setCurrentStreamPair(null);
+        // Sync category to bank if the existing answer has one
+        const cat = existing.answer?.metadata?.category || existing.question.category;
+        if (cat) {
+          updateBankCategory(existing.question.content, cat);
+        }
+      } else if (hasApiKey) {
+        handleSubmit(q);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, settingsLoaded, historyLoaded, hasApiKey]);
+
   // Auto-scroll during streaming
   useEffect(() => {
     if (isGenerating && answerEndRef.current) {
@@ -57,8 +94,8 @@ export default function Home() {
         return;
       }
 
-      const qId = `Q${String(history.length + 1).padStart(3, "0")}`;
-      const aId = `A${String(history.length + 1).padStart(3, "0")}`;
+      const qId = generateId("Q");
+      const aId = generateId("A");
 
       const question: Question = {
         id: qId,
@@ -110,13 +147,25 @@ export default function Home() {
         };
 
         addPair(finalPair);
+        // Auto-sync to question bank (add or update category)
+        addToBank(finalQuestion.content, metadata?.category || null, "homepage");
+        if (metadata?.category) {
+          updateBankCategory(finalQuestion.content, metadata.category);
+        }
         setCurrentStreamPair(null);
         setSelectedId(finalQuestion.id);
       } catch {
         setCurrentStreamPair(null);
       }
     },
-    [settings, history.length, generate, addPair, hasApiKey]
+    [settings, generate, addPair, addToBank, updateBankCategory, hasApiKey]
+  );
+
+  const handleImportToBank = useCallback(
+    (content: string, category: QuestionCategory | null) => {
+      addToBank(content, category);
+    },
+    [addToBank]
   );
 
   const selectedPair = selectedId
@@ -147,6 +196,21 @@ export default function Home() {
       listCached(displayPair.answer.id).then(setCachedVoices);
     },
     [displayPair, settings, speak, listCached]
+  );
+
+  const handleSpeakMentorEval = useCallback(
+    async (text: string) => {
+      if (!displayPair || !text.trim()) return;
+      await speak(
+        `${displayPair.answer.id}_mentor_eval`,
+        text,
+        settings,
+        settings.mentorVoice,
+        undefined,
+        settings.mentorVoiceName,
+      );
+    },
+    [displayPair, settings, speak]
   );
 
   // ─── Section edit / annotation / version handlers ─────────────
@@ -399,6 +463,7 @@ export default function Home() {
                   streamText={streamText}
                   onToggleFavorite={isStreaming ? undefined : toggleFavorite}
                   onDelete={isStreaming ? undefined : removePair}
+                  onImportToBank={isStreaming ? undefined : handleImportToBank}
                   ttsStatus={isTTSTarget ? ttsStatus : showTTS ? "idle" : undefined}
                   onSpeak={showTTS ? handleSpeak : undefined}
                   onPause={isTTSTarget ? pause : undefined}
@@ -421,6 +486,7 @@ export default function Home() {
                   onAnnotationDelete={isStreaming ? undefined : handleAnnotationDelete}
                   onAnnotationUpdate={isStreaming ? undefined : handleAnnotationUpdate}
                   onVersionRestore={isStreaming ? undefined : handleVersionRestore}
+                  onSpeakMentorEval={isStreaming ? undefined : handleSpeakMentorEval}
                   settings={settings}
                 />);
               })()) : (
@@ -463,5 +529,17 @@ export default function Home() {
         onReset={resetSettings}
       />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-stone-50 via-amber-50/20 to-stone-50">
+        <div className="text-sm text-zinc-400 animate-pulse">加载中...</div>
+      </div>
+    }>
+      <HomeInner />
+    </Suspense>
   );
 }

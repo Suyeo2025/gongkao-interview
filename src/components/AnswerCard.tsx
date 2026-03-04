@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { QAPair } from "@/lib/types";
+import { QAPair, QuestionCategory } from "@/lib/types";
 import { CategoryBadge } from "./CategoryBadge";
 import { CopyButton } from "./CopyButton";
 import { AnswerSection } from "./AnswerSection";
@@ -13,6 +13,7 @@ import { stripMetaBlock, parseSections } from "@/lib/parser";
 import { TTSStatus, CompletionInfo } from "@/hooks/useTTS";
 import { WordTimestamp, CachedVoiceInfo } from "@/lib/audio-cache";
 import { SectionKey, SectionVersion, Settings } from "@/lib/types";
+import { MentorEvalPanel } from "./MentorEvalPanel";
 
 interface AnswerCardProps {
   pair: QAPair;
@@ -46,6 +47,8 @@ interface AnswerCardProps {
   onAnnotationDelete?: (sectionKey: SectionKey, annotationId: string) => void;
   onAnnotationUpdate?: (sectionKey: SectionKey, annotationId: string, content: string) => void;
   onVersionRestore?: (sectionKey: SectionKey, versionId: string) => void;
+  onImportToBank?: (content: string, category: QuestionCategory | null) => void;
+  onSpeakMentorEval?: (text: string) => void;
   settings?: Settings;
 }
 
@@ -77,6 +80,8 @@ export function AnswerCard({
   onAnnotationDelete,
   onAnnotationUpdate,
   onVersionRestore,
+  onImportToBank,
+  onSpeakMentorEval,
   settings: cardSettings,
 }: AnswerCardProps) {
   const { question, answer } = pair;
@@ -246,6 +251,19 @@ export function AnswerCard({
         )}
       </div>
 
+      {/* Mentor evaluation */}
+      {!isStreaming && hasSections && cardSettings && (
+        <div className="px-3 py-3 sm:px-5 sm:py-3 md:px-6 md:py-3 border-t border-zinc-100/60">
+          <MentorEvalPanel
+            answerId={answer.id}
+            questionContent={question.content}
+            answerContent={sections.answer}
+            settings={cardSettings}
+            onSpeakText={onSpeakMentorEval}
+          />
+        </div>
+      )}
+
       {/* Bottom action bar */}
       {!isStreaming && (
         <div className="px-3 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 border-t border-zinc-100/60 bg-zinc-50/30 flex items-center justify-between">
@@ -264,6 +282,17 @@ export function AnswerCard({
                   className={question.isFavorite ? "text-amber-400" : "text-zinc-400"}
                 />
                 <span className="hidden sm:inline">{question.isFavorite ? "已收藏" : "收藏"}</span>
+              </Button>
+            )}
+            {onImportToBank && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs rounded-lg h-9 sm:h-10 px-2.5 sm:px-3 text-zinc-500 hover:text-blue-600 hover:border-blue-200"
+                onClick={() => onImportToBank(question.content, answer.metadata?.category || question.category)}
+              >
+                <Icon name="library_add" size={18} />
+                <span className="hidden sm:inline">导入题库</span>
               </Button>
             )}
             {onDelete && (
