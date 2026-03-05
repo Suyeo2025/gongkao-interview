@@ -6,7 +6,8 @@ import { getSettings, saveSettings } from "@/lib/storage";
 
 function hasNonDefaultSettings(s: Settings): boolean {
   return s.geminiApiKey !== "" || s.qwenApiKey !== "" || s.dashscopeApiKey !== "" ||
-    s.textProvider !== DEFAULT_SETTINGS.textProvider || s.modelName !== DEFAULT_SETTINGS.modelName;
+    s.textProvider !== DEFAULT_SETTINGS.textProvider || s.modelName !== DEFAULT_SETTINGS.modelName ||
+    s.mentorUseShared !== DEFAULT_SETTINGS.mentorUseShared;
 }
 
 export function useSettings() {

@@ -1,10 +1,19 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
+
+// Load KaTeX CSS once from public folder
+let katexCssLoaded = false;
+function ensureKatexCss() {
+  if (katexCssLoaded || typeof document === "undefined") return;
+  katexCssLoaded = true;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "/katex.min.css";
+  document.head.appendChild(link);
+}
 
 interface MarkdownRendererProps {
   content: string;
@@ -12,11 +21,53 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hasLatex = /\$/.test(content);
+
+  // Post-render: find LaTeX in text nodes and render with KaTeX
+  useEffect(() => {
+    if (!hasLatex || !containerRef.current) return;
+
+    let cancelled = false;
+    import("katex").then((mod) => {
+      if (cancelled || !containerRef.current) return;
+      ensureKatexCss();
+      const katex = mod.default;
+      const el = containerRef.current;
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+
+      for (const node of nodes) {
+        const text = node.textContent || "";
+        if (!text.includes("$")) continue;
+
+        // Replace $$...$$ and $...$
+        const html = text
+          .replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
+            try { return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false }); }
+            catch { return `$$${expr}$$`; }
+          })
+          .replace(/(?<!\$)\$(?!\$)([^\n$]+?)\$(?!\$)/g, (_, expr) => {
+            try { return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false }); }
+            catch { return `$${expr}$`; }
+          });
+
+        if (html !== text) {
+          const span = document.createElement("span");
+          span.innerHTML = html;
+          node.parentNode?.replaceChild(span, node);
+        }
+      }
+    }).catch(() => { /* KaTeX load failed, show raw text */ });
+
+    return () => { cancelled = true; };
+  }, [content, hasLatex]);
+
   return (
-    <div className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground ${className}`}>
+    <div ref={containerRef} className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
             <h1 className="text-base font-bold mt-4 mb-2 text-zinc-800">{children}</h1>

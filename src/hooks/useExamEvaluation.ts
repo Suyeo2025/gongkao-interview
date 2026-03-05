@@ -53,11 +53,13 @@ export function useExamEvaluation() {
       setStreamText("");
       setEvaluations(new Map());
 
-      const apiKey =
-        settings.textProvider === "qwen" ? settings.qwenApiKey : settings.geminiApiKey;
+      const provider = settings.mentorUseShared ? settings.textProvider : settings.mentorProvider;
+      const modelName = settings.mentorUseShared ? settings.modelName : settings.mentorModelName;
+      const temperature = settings.mentorUseShared ? 0.5 : settings.mentorTemperature;
+      const apiKey = provider === "qwen" ? settings.qwenApiKey : settings.geminiApiKey;
 
       if (!apiKey) {
-        setError(`请先配置 ${settings.textProvider === "qwen" ? "DashScope" : "Gemini"} API Key`);
+        setError(`请先配置 ${provider === "qwen" ? "DashScope" : "Gemini"} API Key`);
         setIsEvaluating(false);
         return;
       }
@@ -78,10 +80,10 @@ export function useExamEvaluation() {
               timeLimit: a.timeLimit,
             })),
             apiKey,
-            provider: settings.textProvider,
+            provider,
             config: {
-              modelName: settings.modelName,
-              temperature: 0.5,
+              modelName,
+              temperature,
             },
           }),
           signal: controller.signal,
@@ -115,7 +117,7 @@ export function useExamEvaluation() {
         // Final parse
         const finalEvals = parseEvalBlocks(accumulated);
         // Set model info
-        const modelUsed = `${settings.textProvider}/${settings.modelName}`;
+        const modelUsed = `${provider}/${modelName}`;
         for (const [key, val] of finalEvals) {
           finalEvals.set(key, { ...val, modelUsed });
         }

@@ -390,6 +390,16 @@ function SettingsTab({ userId, initial }: { userId: string; initial: Partial<Set
       ],
     },
     {
+      title: "导师分析模型",
+      icon: "psychology",
+      fields: [
+        { key: "mentorUseShared", label: "跟随主模型", type: "text" },
+        { key: "mentorProvider", label: "Provider", type: "text" },
+        { key: "mentorModelName", label: "模型", type: "text" },
+        { key: "mentorTemperature", label: "Temperature", type: "number" },
+      ],
+    },
+    {
       title: "导师音色",
       icon: "school",
       fields: [

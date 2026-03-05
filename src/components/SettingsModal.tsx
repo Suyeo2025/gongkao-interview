@@ -57,6 +57,11 @@ export function SettingsModal({
   const [ttsModelsLoading, setTtsModelsLoading] = useState(false);
   const lastFetchedTtsKeyRef = useRef<string>("");
 
+  // Mentor model
+  const [mentorModels, setMentorModels] = useState<ModelInfo[]>([]);
+  const [mentorModelsLoading, setMentorModelsLoading] = useState(false);
+  const lastFetchedMentorKeyRef = useRef<string>("");
+
   interface VoiceInfo {
     id: string;
     name: string;
@@ -158,6 +163,37 @@ export function SettingsModal({
     }
   }, [settings.ttsModel, onUpdate]);
 
+  const fetchMentorModels = useCallback(async (apiKey: string, provider: TextProvider) => {
+    if (!apiKey || apiKey.length < 10) {
+      setMentorModels([]);
+      return;
+    }
+    const cacheKey = `${provider}:${apiKey}`;
+    if (cacheKey === lastFetchedMentorKeyRef.current) return;
+
+    setMentorModelsLoading(true);
+    try {
+      const res = await fetch("/api/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey, provider }),
+      });
+      const data = await res.json();
+      if (data.models?.length > 0) {
+        setMentorModels(data.models);
+        lastFetchedMentorKeyRef.current = cacheKey;
+        const currentValid = data.models.some((m: ModelInfo) => m.id === settings.mentorModelName);
+        if (!currentValid) {
+          onUpdate({ mentorModelName: data.models[0].id });
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setMentorModelsLoading(false);
+    }
+  }, [settings.mentorModelName, onUpdate]);
+
   const fetchVoices = useCallback(async (model: string) => {
     if (model === lastFetchedVoiceModelRef.current) return;
 
@@ -215,6 +251,13 @@ export function SettingsModal({
     }
     fetchVoices(settings.ttsModel);
   }, [settings.ttsModel, fetchVoices, onUpdate]);
+
+  useEffect(() => {
+    if (!settings.mentorUseShared && open) {
+      const apiKey = settings.mentorProvider === "qwen" ? settings.qwenApiKey : settings.geminiApiKey;
+      fetchMentorModels(apiKey, settings.mentorProvider);
+    }
+  }, [open, settings.mentorUseShared, settings.mentorProvider, settings.qwenApiKey, settings.geminiApiKey, fetchMentorModels]);
 
   useEffect(() => {
     if (open) {
@@ -756,9 +799,153 @@ export function SettingsModal({
               </div>
             </div>
 
-            {/* === Section 4: Temperature === */}
+            {/* === Section 4: Mentor Evaluation Model === */}
             <div className="space-y-3">
-              {sectionHeader(4, "创造性调节", true, "tune")}
+              {sectionHeader(4, "导师分析模型", !settings.mentorUseShared, "psychology")}
+
+              <div className="ml-8 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-zinc-500">
+                    {settings.mentorUseShared
+                      ? <>跟随主模型 <span className="font-mono text-amber-700">{settings.modelName}</span></>
+                      : "使用独立模型评估考生表现"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !settings.mentorUseShared;
+                      if (next) {
+                        onUpdate({ mentorUseShared: true });
+                      } else {
+                        // Default to a strong model
+                        const provider = settings.textProvider;
+                        onUpdate({
+                          mentorUseShared: false,
+                          mentorProvider: provider,
+                          mentorModelName: provider === "gemini" ? "gemini-2.5-pro" : "qwen-max",
+                        });
+                      }
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      !settings.mentorUseShared ? "bg-amber-500" : "bg-zinc-200"
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                      !settings.mentorUseShared ? "translate-x-[18px]" : "translate-x-[3px]"
+                    }`} />
+                  </button>
+                </div>
+
+                {!settings.mentorUseShared && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {/* Provider tabs */}
+                    <div className="flex gap-1 p-1 bg-zinc-100 rounded-xl">
+                      {(["gemini", "qwen"] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => {
+                            lastFetchedMentorKeyRef.current = "";
+                            setMentorModels([]);
+                            onUpdate({
+                              mentorProvider: p,
+                              mentorModelName: p === "gemini" ? "gemini-2.5-pro" : "qwen-max",
+                            });
+                          }}
+                          className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
+                            settings.mentorProvider === p
+                              ? "bg-white text-amber-700 shadow-sm"
+                              : "text-zinc-500 hover:text-zinc-700"
+                          }`}
+                        >
+                          {p === "gemini" ? "Google Gemini" : "通义千问 Qwen"}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* API Key hint */}
+                    {(() => {
+                      const mentorKey = settings.mentorProvider === "qwen" ? settings.qwenApiKey : settings.geminiApiKey;
+                      if (!mentorKey || mentorKey.length < 10) {
+                        return (
+                          <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50/80 rounded-lg px-3 py-2">
+                            <Icon name="info" size={14} className="shrink-0 mt-0.5" />
+                            请先在上方「文本生成」中配置对应的 API Key
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Model select */}
+                    {mentorModels.length > 0 ? (
+                      <>
+                        <Select value={settings.mentorModelName} onValueChange={(v) => onUpdate({ mentorModelName: v })}>
+                          <SelectTrigger className="h-11 rounded-xl">
+                            <SelectValue placeholder="选择导师模型" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mentorModels.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                <div className="flex flex-col">
+                                  <span className="text-sm">{m.id}</span>
+                                  {m.description && (
+                                    <span className="text-[10px] text-zinc-400 truncate max-w-[320px]">
+                                      {m.description.slice(0, 80)}
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-zinc-400">
+                          当前: <span className="font-mono text-amber-700">{settings.mentorModelName}</span>
+                        </p>
+                      </>
+                    ) : (
+                      <div className="border border-dashed border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-400 text-center">
+                        {mentorModelsLoading ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Icon name="progress_activity" size={16} className="animate-spin text-amber-500" />
+                            正在加载模型列表...
+                          </span>
+                        ) : (
+                          "等待加载模型..."
+                        )}
+                      </div>
+                    )}
+
+                    {/* Temperature */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-zinc-400">评估温度</span>
+                        <span className="text-sm font-mono font-semibold text-amber-700">
+                          {settings.mentorTemperature.toFixed(1)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[settings.mentorTemperature]}
+                        onValueChange={([v]) => onUpdate({ mentorTemperature: v })}
+                        min={0}
+                        max={1.5}
+                        step={0.1}
+                        className="py-2"
+                      />
+                      <div className="flex justify-between text-[10px] text-zinc-400">
+                        <span>严谨客观</span>
+                        <span className="text-amber-600 font-medium">推荐 0.3-0.5</span>
+                        <span>灵活发散</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* === Section 5: Temperature === */}
+            <div className="space-y-3">
+              {sectionHeader(5, "创造性调节", true, "tune")}
 
               <div className="ml-8 space-y-2">
                 <div className="flex items-center justify-between">
@@ -785,7 +972,7 @@ export function SettingsModal({
 
             {/* === Section 5: Data Management === */}
             <div className="space-y-3">
-              {sectionHeader(5, "数据管理", true, "folder_open")}
+              {sectionHeader(6, "数据管理", true, "folder_open")}
 
               <div className="ml-8 space-y-2">
                 <div className="flex gap-2">

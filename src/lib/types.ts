@@ -109,6 +109,11 @@ export interface Settings {
   mentorVoiceName: string;
   mentorRate: number;
   mentorCustomTargetModel: string; // 自定义音色绑定模型，空=系统音色
+  // Mentor evaluation model (independent from text generation)
+  mentorUseShared: boolean;       // true = follow textProvider/modelName
+  mentorProvider: TextProvider;
+  mentorModelName: string;
+  mentorTemperature: number;
   // Exam defaults
   defaultTimePerQuestion: number;
   defaultAdvanceMode: ExamAdvanceMode;
@@ -133,6 +138,10 @@ export const DEFAULT_SETTINGS: Settings = {
   mentorVoiceName: "龙安洋 · 阳光男声",
   mentorRate: 1.0,
   mentorCustomTargetModel: "",
+  mentorUseShared: true,
+  mentorProvider: "gemini",
+  mentorModelName: "gemini-2.5-pro",
+  mentorTemperature: 0.5,
   defaultTimePerQuestion: 120,
   defaultAdvanceMode: "manual",
   defaultTotalExamTime: 1200,
