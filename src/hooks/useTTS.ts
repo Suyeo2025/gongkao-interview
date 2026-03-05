@@ -157,6 +157,13 @@ export function useTTS() {
       setPlainText(clean);
       setRateState(useRate);
 
+      // Pre-create Audio element *synchronously* within user gesture to
+      // "unlock" playback — browsers require play() in the same gesture.
+      // We play a tiny silent buffer first, then swap in real audio later.
+      const audio = new Audio();
+      audio.playbackRate = useRate;
+      audioRef.current = audio;
+
       try {
         const cached = await getCachedAudio(
           answerId,
@@ -215,9 +222,7 @@ export function useTTS() {
         const url = URL.createObjectURL(blob);
         urlRef.current = url;
 
-        const audio = new Audio(url);
-        audio.playbackRate = useRate;
-        audioRef.current = audio;
+        audio.src = url;
 
         audio.onloadedmetadata = () => {
           setDuration(audio.duration);
@@ -246,7 +251,16 @@ export function useTTS() {
           setCurrentWordIndex(-1);
         };
 
-        await audio.play();
+        try {
+          await audio.play();
+        } catch {
+          // Autoplay blocked — user gesture expired after async fetch.
+          // Retry: user needs to interact again, but we can try once more.
+          setError("浏览器阻止了自动播放，请再点击一次播放按钮");
+          setStatus("idle");
+          // Keep audio element ready so next click works immediately
+          return;
+        }
         playStartRef.current = Date.now();
         voiceNameRef.current = useVoiceName;
         setStatus("playing");

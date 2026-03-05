@@ -61,11 +61,42 @@ export function ExamSimulation({
   const [showConfirmExit, setShowConfirmExit] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [lastAudioUrl, setLastAudioUrl] = useState<string | null>(null);
+  const [micReady, setMicReady] = useState(false);
   const processingRef = useRef(false);
 
-  // Start exam on mount
+  // Upload audio blob to server, return persistent URL
+  const uploadAudio = useCallback(async (blob: Blob, sessionId: string, qIdx: number): Promise<string | undefined> => {
+    try {
+      const form = new FormData();
+      form.append("file", blob, `${sessionId}-${qIdx}.webm`);
+      form.append("sessionId", sessionId);
+      form.append("questionIndex", String(qIdx));
+      const res = await fetch("/api/audio", { method: "POST", body: form });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      }
+    } catch { /* upload failure is non-critical */ }
+    return undefined;
+  }, []);
+
+  // Start exam + pre-request mic permission on mount
   useEffect(() => {
     startExam(paper, mode);
+
+    // Pre-request microphone permission so browser shows the dialog early
+    if (navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+          // Permission granted — release the stream immediately
+          stream.getTracks().forEach((t) => t.stop());
+          setMicReady(true);
+        })
+        .catch(() => {
+          // Permission denied or unavailable — user will see error when they try to record
+          setMicReady(false);
+        });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -88,8 +119,13 @@ export function ExamSimulation({
         if (mode === "exam") {
           if (asrStatus === "recording") {
             const result = await stopRecording(dashscopeApiKey);
-            if (result) setLastAudioUrl(result.audioUrl);
-            finishExam(paper, result?.transcript || "（超时未答）", result?.words || []);
+            if (result) {
+              setLastAudioUrl(result.audioUrl);
+              const serverUrl = session ? await uploadAudio(result.audioBlob, session.id, session.answers.length) : undefined;
+              finishExam(paper, result.transcript || "（超时未答）", result.words || [], serverUrl);
+            } else {
+              finishExam(paper, "（超时未答）", []);
+            }
           } else {
             finishExam(paper, "（超时未答）", []);
           }
@@ -131,7 +167,8 @@ export function ExamSimulation({
       const result = await stopRecording(dashscopeApiKey);
       if (result) {
         setLastAudioUrl(result.audioUrl);
-        finishQuestion(result.transcript, result.words, paper);
+        const serverUrl = session ? await uploadAudio(result.audioBlob, session.id, session.currentQuestionIndex) : undefined;
+        finishQuestion(result.transcript, result.words, paper, serverUrl);
       } else {
         finishQuestion("", [], paper);
       }
@@ -139,7 +176,7 @@ export function ExamSimulation({
       finishQuestion(transcript || "", words, paper);
     }
     resetASR();
-  }, [asrStatus, stopRecording, dashscopeApiKey, finishQuestion, transcript, words, paper, resetASR]);
+  }, [asrStatus, stopRecording, dashscopeApiKey, finishQuestion, transcript, words, paper, resetASR, session, uploadAudio]);
 
   // Finish current answer: stop recording, transcribe, save answer
   const handleFinishAnswer = useCallback(async () => {
@@ -187,13 +224,17 @@ export function ExamSimulation({
     processingRef.current = true;
     if (asrStatus === "recording") {
       const result = await stopRecording(dashscopeApiKey);
-      finishExam(paper, result?.transcript, result?.words);
+      let serverUrl: string | undefined;
+      if (result && session) {
+        serverUrl = await uploadAudio(result.audioBlob, session.id, session.answers.length);
+      }
+      finishExam(paper, result?.transcript, result?.words, serverUrl);
     } else {
       finishExam(paper, transcript || undefined, transcript ? words : undefined);
     }
     resetASR();
     processingRef.current = false;
-  }, [asrStatus, stopRecording, dashscopeApiKey, finishExam, paper, transcript, words, resetASR]);
+  }, [asrStatus, stopRecording, dashscopeApiKey, finishExam, paper, transcript, words, resetASR, session, uploadAudio]);
 
   const isRecording = asrStatus === "recording";
   const isProcessing = asrStatus === "processing";
@@ -211,7 +252,7 @@ export function ExamSimulation({
           <div className="px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm">
             <span className="text-xs font-medium text-white/70">
               {mode === "practice" ? "练习" : "模考"} ·{" "}
-              <span className="text-amber-400 font-semibold">
+              <span className="text-white font-semibold">
                 {currentIdx + 1}
               </span>
               <span className="text-white/40">/{totalQuestions}</span>
@@ -270,7 +311,7 @@ export function ExamSimulation({
         <div className="absolute top-[52px] inset-x-0 z-10 px-4 sm:px-6">
           <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-zinc-300 to-zinc-400 transition-all duration-500"
               style={{ width: `${((session?.answers.length ?? 0) / totalQuestions) * 100}%` }}
             />
           </div>
@@ -288,7 +329,7 @@ export function ExamSimulation({
               <button
                 type="button"
                 onClick={handleTogglePause}
-                className="px-6 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors"
+                className="px-6 py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-sm font-medium transition-colors"
               >
                 继续作答
               </button>
@@ -325,28 +366,45 @@ export function ExamSimulation({
                 <audio controls src={lastAudioUrl} className="mx-auto h-8 opacity-70" />
               </div>
             )}
-            <button
-              type="button"
-              onClick={handleNextQuestion}
-              className="mt-6 px-8 py-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium text-sm shadow-lg transition-all"
-            >
-              {currentIdx + 1 < totalQuestions ? (
-                <span className="inline-flex items-center gap-1.5">
-                  下一题 <Icon name="arrow_forward" size={16} />
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  完成考试 <Icon name="done_all" size={16} />
-                </span>
-              )}
-            </button>
+            {currentIdx + 1 < totalQuestions ? (
+              /* ── 下一题：简洁按钮 ── */
+              <button
+                type="button"
+                onClick={handleNextQuestion}
+                className="mt-6 px-10 py-3 rounded-full bg-white/90 hover:bg-white text-zinc-800 font-semibold text-sm shadow-lg shadow-black/20 transition-all active:scale-95 inline-flex items-center gap-2"
+              >
+                下一题
+                <Icon name="arrow_forward" size={16} />
+              </button>
+            ) : (
+              /* ── 完成考试：醒目的完成区域 ── */
+              <div className="mt-6 flex flex-col items-center gap-3">
+                <p className="text-xs text-white/40">
+                  全部 {totalQuestions} 题作答完毕
+                </p>
+                <button
+                  type="button"
+                  onClick={handleNextQuestion}
+                  className="group relative w-48 h-14 rounded-2xl transition-all active:scale-95"
+                >
+                  <span className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_24px_rgba(52,211,153,0.4)] group-hover:shadow-[0_0_40px_rgba(52,211,153,0.6)] transition-shadow" />
+                  <span className="absolute inset-0 rounded-2xl overflow-hidden">
+                    <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+                  </span>
+                  <span className="relative z-10 flex items-center justify-center gap-2 text-white font-bold text-base">
+                    <Icon name="done_all" size={20} />
+                    完成考试
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Finished phase */}
         {phase === "finished" && session && (
           <div className="w-full max-w-md text-center">
-            <Icon name="emoji_events" size={56} className="text-amber-400 mx-auto mb-4" />
+            <Icon name="emoji_events" size={56} className="text-white/60 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">
               {mode === "practice" ? "练习完成" : "模拟考试完成"}
             </h2>

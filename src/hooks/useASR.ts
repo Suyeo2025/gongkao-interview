@@ -52,6 +52,11 @@ export function useASR() {
     }
 
     try {
+      // Check secure context (getUserMedia requires HTTPS or localhost)
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("SECURE_CONTEXT");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000,
@@ -91,18 +96,25 @@ export function useASR() {
       processor.connect(ctx.destination);
       setStatus("recording");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "麦克风获取失败";
-      setError(
-        message.includes("NotAllowed") || message.includes("Permission")
-          ? "请允许麦克风访问权限"
-          : message
-      );
+      const message = err instanceof Error ? err.message : "";
+      const lower = message.toLowerCase();
+      let friendly: string;
+      if (message === "SECURE_CONTEXT") {
+        friendly = "录音需要 HTTPS 环境，请使用 https:// 或 localhost 访问";
+      } else if (lower.includes("not allowed") || lower.includes("permission") || lower.includes("notallowed")) {
+        friendly = "请允许麦克风访问权限（浏览器地址栏左侧可重新授权）";
+      } else if (lower.includes("not found") || lower.includes("no device")) {
+        friendly = "未检测到麦克风设备";
+      } else {
+        friendly = `麦克风获取失败: ${message}`;
+      }
+      setError(friendly);
       setStatus("error");
     }
   }, [cleanupRecording, audioUrl]);
 
   const stopRecording = useCallback(
-    async (apiKey: string): Promise<{ transcript: string; words: ASRWord[]; audioUrl: string } | null> => {
+    async (apiKey: string): Promise<{ transcript: string; words: ASRWord[]; audioUrl: string; audioBlob: Blob } | null> => {
       if (status !== "recording") return null;
       setStatus("processing");
 
@@ -129,7 +141,7 @@ export function useASR() {
       const totalLength = pcmChunksRef.current.reduce((acc, c) => acc + c.length, 0);
       if (totalLength === 0) {
         setStatus("idle");
-        return { transcript: "", words: [], audioUrl: playbackUrl };
+        return { transcript: "", words: [], audioUrl: playbackUrl, audioBlob: playbackBlob };
       }
 
       const fullPcm = new Int16Array(totalLength);
@@ -172,7 +184,7 @@ export function useASR() {
         setTranscript(resultTranscript);
         setWords(resultWords);
         setStatus("idle");
-        return { transcript: resultTranscript, words: resultWords, audioUrl: playbackUrl };
+        return { transcript: resultTranscript, words: resultWords, audioUrl: playbackUrl, audioBlob: playbackBlob };
       } catch (err) {
         setError(err instanceof Error ? err.message : "转写请求失败");
         setStatus("error");

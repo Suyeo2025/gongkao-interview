@@ -277,6 +277,7 @@ export interface ExamQuestionAnswer {
   timeLimit: number;
   startedAt: string;
   finishedAt: string;
+  audioUrl?: string;
   evaluation?: ExamEvaluation;
 }
 

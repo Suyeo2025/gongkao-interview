@@ -22,7 +22,7 @@ export function ExamTimer({ seconds, visible, running, onToggleVisibility }: Exa
   const colorClass = isDanger
     ? "text-red-400"
     : isWarning
-      ? "text-amber-400"
+      ? "text-zinc-300"
       : "text-white/90";
 
   const pulseClass = isDanger && running ? "animate-pulse" : "";

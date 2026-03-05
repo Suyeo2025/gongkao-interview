@@ -14,6 +14,7 @@ interface ExamEvaluationViewProps {
   onEvaluate: () => void;
   onClose: () => void;
   onSaveEvaluations?: () => void;
+  onPlayAudio?: (answer: ExamQuestionAnswer, evalResult?: ExamEvaluation) => void;
   // TTS
   ttsStatus?: TTSStatus;
   ttsActiveId?: string | null;
@@ -28,7 +29,7 @@ function ScoreBadge({ score }: { score: number }) {
     score >= 90
       ? "bg-emerald-100 text-emerald-700 border-emerald-200"
       : score >= 70
-        ? "bg-amber-100 text-amber-700 border-amber-200"
+        ? "bg-zinc-100 text-zinc-700 border-zinc-200"
         : "bg-red-100 text-red-700 border-red-200";
 
   return (
@@ -79,11 +80,11 @@ function EvalTTSButton({
     return (
       <div className="inline-flex items-center gap-1.5">
         <button type="button" onClick={onPause}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors">
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition-colors">
           <Icon name="pause" size={14} /> 暂停
         </button>
         <button type="button" onClick={onStop}
-          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-zinc-500 bg-zinc-100 hover:bg-zinc-200 transition-colors">
+          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-zinc-500 bg-zinc-50 hover:bg-zinc-100 transition-colors">
           <Icon name="stop" size={14} />
         </button>
       </div>
@@ -94,11 +95,11 @@ function EvalTTSButton({
     return (
       <div className="inline-flex items-center gap-1.5">
         <button type="button" onClick={onResume}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition-colors">
           <Icon name="play_arrow" size={14} /> 继续
         </button>
         <button type="button" onClick={onStop}
-          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-zinc-500 bg-zinc-100 hover:bg-zinc-200 transition-colors">
+          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-zinc-500 bg-zinc-50 hover:bg-zinc-100 transition-colors">
           <Icon name="stop" size={14} />
         </button>
       </div>
@@ -124,6 +125,7 @@ export function ExamEvaluationView({
   onEvaluate,
   onClose,
   onSaveEvaluations,
+  onPlayAudio,
   ttsStatus,
   ttsActiveId,
   onSpeak,
@@ -134,9 +136,6 @@ export function ExamEvaluationView({
   // If evaluations exist (from history or just evaluated), default expand first question
   const hasEvals = evaluations.size > 0 || session.answers.some((a) => !!a.evaluation);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(hasEvals ? 0 : null);
-  // Detect if evaluations were already saved in the session
-  const alreadySaved = session.answers.some((a) => !!a.evaluation);
-  const [savedToHistory, setSavedToHistory] = useState(alreadySaved);
 
   const totalScore =
     evaluations.size > 0
@@ -180,7 +179,7 @@ export function ExamEvaluationView({
               totalScore >= 90
                 ? "text-emerald-600"
                 : totalScore >= 70
-                  ? "text-amber-600"
+                  ? "text-zinc-700"
                   : "text-red-600"
             }`}
           >
@@ -221,7 +220,14 @@ export function ExamEvaluationView({
       {error && (
         <div className="flex items-start gap-2 text-xs text-red-500 bg-red-50/80 rounded-lg px-3 py-2">
           <Icon name="error" size={14} className="shrink-0 mt-0.5" />
-          {error}
+          <span className="flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={onEvaluate}
+            className="shrink-0 px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 text-xs font-medium transition-colors"
+          >
+            重试
+          </button>
         </div>
       )}
 
@@ -269,9 +275,21 @@ export function ExamEvaluationView({
                         <p className="text-xs text-zinc-600 leading-relaxed">
                           {answer.asrTranscript || "（未作答）"}
                         </p>
-                        <p className="text-[10px] text-zinc-300 mt-1.5">
-                          用时 {answer.timeSpent}秒 / {answer.timeLimit}秒
-                        </p>
+                        <div className="flex items-center justify-between mt-1.5">
+                          <p className="text-[10px] text-zinc-300">
+                            用时 {answer.timeSpent}秒 / {answer.timeLimit}秒
+                          </p>
+                          {answer.audioUrl && onPlayAudio && (
+                            <button
+                              type="button"
+                              onClick={() => onPlayAudio(answer, evalResult)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                            >
+                              <Icon name="play_circle" size={14} />
+                              播放录音
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -325,8 +343,8 @@ export function ExamEvaluationView({
 
                         {evalResult.suggestions && (
                           <div>
-                            <p className="text-[10px] text-blue-600 font-medium mb-1">导师评语</p>
-                            <p className="text-xs text-zinc-600 leading-relaxed bg-blue-50/50 rounded-lg px-3 py-2">
+                            <p className="text-[10px] text-zinc-500 font-medium mb-1">导师评语</p>
+                            <p className="text-xs text-zinc-600 leading-relaxed bg-zinc-50 rounded-lg px-3 py-2">
                               {evalResult.suggestions}
                             </p>
                           </div>
@@ -357,24 +375,12 @@ export function ExamEvaluationView({
         </div>
       )}
 
-      {/* Save evaluations button */}
-      {evaluations.size > 0 && !isEvaluating && onSaveEvaluations && (
-        <button
-          type="button"
-          onClick={() => {
-            onSaveEvaluations();
-            setSavedToHistory(true);
-          }}
-          disabled={savedToHistory}
-          className={`w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm ${
-            savedToHistory
-              ? "bg-zinc-100 text-zinc-400 cursor-default"
-              : "bg-zinc-800 hover:bg-zinc-700 text-white"
-          }`}
-        >
-          <Icon name={savedToHistory ? "check_circle" : "save"} size={16} />
-          {savedToHistory ? "评估已保存" : "保存评估结果"}
-        </button>
+      {/* Auto-saved indicator */}
+      {evaluations.size > 0 && !isEvaluating && (
+        <div className="flex items-center justify-center gap-1.5 py-2 text-xs text-zinc-400">
+          <Icon name="check_circle" size={14} className="text-emerald-500" />
+          已自动保存评估结果
+        </div>
       )}
     </div>
   );

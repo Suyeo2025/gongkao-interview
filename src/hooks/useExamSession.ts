@@ -85,7 +85,7 @@ export function useExamSession() {
   }, [session]);
 
   const finishQuestion = useCallback(
-    (transcript: string, words: ASRWord[], paper: ExamPaper) => {
+    (transcript: string, words: ASRWord[], paper: ExamPaper, audioUrl?: string) => {
       if (!session) return;
 
       const idx = session.currentQuestionIndex;
@@ -116,6 +116,7 @@ export function useExamSession() {
         timeLimit: paperQ.timeLimit,
         startedAt: questionStartRef.current,
         finishedAt: new Date().toISOString(),
+        ...(audioUrl ? { audioUrl } : {}),
       };
 
       const updatedSession = {
@@ -209,7 +210,7 @@ export function useExamSession() {
   }, []);
 
   const finishExam = useCallback(
-    (paper: ExamPaper, currentTranscript?: string, currentWords?: ASRWord[]) => {
+    (paper: ExamPaper, currentTranscript?: string, currentWords?: ASRWord[], currentAudioUrl?: string) => {
       if (!session) return;
 
       // Stop timer
@@ -235,6 +236,7 @@ export function useExamSession() {
           timeLimit: currentQ.timeLimit,
           startedAt: questionStartRef.current,
           finishedAt: new Date().toISOString(),
+          ...(currentAudioUrl ? { audioUrl: currentAudioUrl } : {}),
         });
       }
 

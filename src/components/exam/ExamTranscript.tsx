@@ -25,7 +25,7 @@ export function ExamTranscript({ status, transcript, audioUrl }: ExamTranscriptP
       {/* Processing indicator */}
       {isProcessing && (
         <div className="flex items-center justify-center gap-2 mb-3">
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" />
           <span className="text-xs text-white/50">语音识别中…</span>
         </div>
       )}

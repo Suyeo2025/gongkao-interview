@@ -39,7 +39,7 @@ export function EditQuestionDialog({ open, onOpenChange, question, onSave }: Edi
       <DialogContent className="sm:max-w-[520px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-base">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
               <Icon name="edit_note" size={18} className="text-white" />
             </div>
             编辑题目
@@ -47,7 +47,7 @@ export function EditQuestionDialog({ open, onOpenChange, question, onSave }: Edi
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2">
             <Icon name="info" size={14} className="shrink-0" />
             编辑将创建新题目，原题目保持不变
           </div>
@@ -85,7 +85,7 @@ export function EditQuestionDialog({ open, onOpenChange, question, onSave }: Edi
           <Button
             onClick={handleSave}
             disabled={!content.trim() || !hasChanges}
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl h-10 text-sm shadow-sm"
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl h-10 text-sm shadow-sm"
           >
             <Icon name="add_circle" size={16} className="mr-1.5" />
             创建新题目

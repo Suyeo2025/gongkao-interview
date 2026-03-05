@@ -45,6 +45,9 @@ yarn-error.log*
 .custom-voices/*.wav
 .custom-voices/*.ogg
 
+# Exam audio recordings
+/data/audio/
+
 # SQLite database
 *.db
 *.db-journal

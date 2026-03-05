@@ -66,13 +66,13 @@ export function QuestionBankPanel({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索题目..."
-            className="pl-9 h-9 rounded-xl text-sm focus-visible:ring-amber-200"
+            className="pl-9 h-9 rounded-xl text-sm focus-visible:ring-zinc-200"
           />
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-xl h-9 text-xs hover:border-amber-300 hover:text-amber-600"
+          className="gap-1.5 rounded-xl h-9 text-xs hover:border-zinc-400 hover:text-zinc-700"
           onClick={() => setAddDialogOpen(true)}
         >
           <Icon name="add" size={16} />
@@ -81,7 +81,7 @@ export function QuestionBankPanel({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-xl h-9 text-xs hover:border-amber-300 hover:text-amber-600"
+          className="gap-1.5 rounded-xl h-9 text-xs hover:border-zinc-400 hover:text-zinc-700"
           onClick={onOpenUpload}
         >
           <Icon name="upload_file" size={16} />
@@ -124,8 +124,28 @@ export function QuestionBankPanel({
       {/* Question list */}
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-zinc-400">
-          <Icon name="library_books" size={40} className="mx-auto mb-3 text-amber-300" />
-          <p className="text-sm">{questions.length === 0 ? "题库为空，添加题目开始吧" : "没有匹配的题目"}</p>
+          <Icon name="library_books" size={40} className="mx-auto mb-3 text-zinc-300" />
+          <p className="text-sm mb-3">{questions.length === 0 ? "题库为空，添加题目开始吧" : "没有匹配的题目"}</p>
+          {questions.length === 0 && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAddDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium transition-colors"
+              >
+                <Icon name="add" size={16} />
+                添加题目
+              </button>
+              <button
+                type="button"
+                onClick={onOpenUpload}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-medium transition-colors"
+              >
+                <Icon name="upload_file" size={16} />
+                上传文件
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -134,7 +154,7 @@ export function QuestionBankPanel({
               key={q.id}
               className={`group relative rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 transition-all active:scale-[0.99] ${
                 selectedIds?.has(q.id)
-                  ? "border-amber-300 bg-amber-50/50"
+                  ? "border-zinc-400 bg-zinc-50/50"
                   : "border-zinc-200/60 bg-white hover:border-zinc-300"
               }`}
             >
@@ -150,7 +170,7 @@ export function QuestionBankPanel({
                       name={selectedIds?.has(q.id) ? "check_circle" : "radio_button_unchecked"}
                       size={20}
                       fill={selectedIds?.has(q.id)}
-                      className={selectedIds?.has(q.id) ? "text-amber-500" : "text-zinc-300"}
+                      className={selectedIds?.has(q.id) ? "text-zinc-600" : "text-zinc-300"}
                     />
                   </button>
                 )}
@@ -176,7 +196,7 @@ export function QuestionBankPanel({
                       </span>
                     )}
                     {q.source === "edit_derived" && (
-                      <span className="flex items-center gap-0.5 text-amber-500">
+                      <span className="flex items-center gap-0.5 text-zinc-500">
                         <Icon name="edit_note" size={12} />
                         已编辑
                       </span>
@@ -196,7 +216,7 @@ export function QuestionBankPanel({
                         className={`p-1.5 rounded-lg sm:opacity-0 sm:group-hover:opacity-100 transition-all ${
                           hasAnswer
                             ? "text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50"
-                            : "text-zinc-300 hover:text-amber-600 hover:bg-amber-50"
+                            : "text-zinc-300 hover:text-zinc-700 hover:bg-zinc-50"
                         }`}
                         title={hasAnswer ? "查看回答" : "AI 生成回答"}
                       >
@@ -208,7 +228,7 @@ export function QuestionBankPanel({
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setEditQuestion(q); }}
-                      className="p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                      className="p-1.5 rounded-lg text-zinc-300 hover:text-zinc-700 hover:bg-zinc-50 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                       title="编辑 (创建新版本)"
                     >
                       <Icon name="edit" size={16} />
