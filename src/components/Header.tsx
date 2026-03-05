@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/lib/user-context";
 
 interface HeaderProps {
   onOpenSettings: () => void;
@@ -12,8 +13,10 @@ interface HeaderProps {
 
 export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
   const router = useRouter();
+  const user = useUser();
 
   const handleLogout = useCallback(async () => {
+    localStorage.removeItem("gongkao_user");
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
@@ -42,6 +45,26 @@ export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* Username display */}
+        {user && (
+          <span className="text-[11px] text-zinc-400 mr-1 hidden sm:inline">
+            {user.username}
+          </span>
+        )}
+
+        {/* Admin panel link */}
+        {user?.role === "admin" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/admin")}
+            className="gap-1.5 text-zinc-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg h-10 px-2.5"
+          >
+            <Icon name="admin_panel_settings" size={20} />
+            <span className="hidden sm:inline text-xs font-medium">管理</span>
+          </Button>
+        )}
+
         <Button
           variant="ghost"
           size="sm"

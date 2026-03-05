@@ -28,6 +28,7 @@ export default function ExamPage() {
     addQuestions,
     removeQuestion,
     updateQuestion,
+    deriveQuestion,
     syncFromHistory,
   } = useQuestionBank();
 
@@ -211,6 +212,7 @@ export default function ExamPage() {
               onAddBatch={addQuestions}
               onRemove={removeQuestion}
               onUpdate={updateQuestion}
+              onDerive={deriveQuestion}
               onOpenUpload={() => setUploadDialogOpen(true)}
               settings={settings}
               onGenerate={handleGenerateAnswer}
@@ -235,6 +237,7 @@ export default function ExamPage() {
               onAddBankBatch={addQuestions}
               onRemoveBankQuestion={removeQuestion}
               onUpdateBankQuestion={updateQuestion}
+              onDeriveBankQuestion={deriveQuestion}
               onOpenUpload={() => setUploadDialogOpen(true)}
               settings={settings}
               onGenerateAnswer={handleGenerateAnswer}
@@ -256,7 +259,7 @@ export default function ExamPage() {
       <FileUploadDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
-        apiKey={settings.geminiApiKey}
+        settings={settings}
         onAddBatch={addQuestions}
       />
 

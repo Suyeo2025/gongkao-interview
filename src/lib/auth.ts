@@ -1,29 +1,36 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
+export interface JWTPayload {
+  userId: string;
+  username: string;
+  role: "admin" | "member";
+}
+
 const COOKIE_NAME = "gongkao_auth";
 
-const DEFAULT_SECRET = "UriM4dBv+Mhmd8i/EboKr5vuzDVa76my+K/f4PCju4U=";
-
 function getSecret() {
-  const secret = process.env.AUTH_SECRET || DEFAULT_SECRET;
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error("AUTH_SECRET environment variable is required");
+  }
   return new TextEncoder().encode(secret);
 }
 
-export async function createToken(): Promise<string> {
-  return new SignJWT({ authenticated: true })
+export async function createToken(payload: JWTPayload): Promise<string> {
+  return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
     .sign(getSecret());
 }
 
-export async function verifyToken(token: string): Promise<boolean> {
+export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    await jwtVerify(token, getSecret());
-    return true;
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload as unknown as JWTPayload;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -42,6 +49,12 @@ export function clearAuthCookie() {
 export async function getAuthToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
   return cookieStore.get(COOKIE_NAME)?.value;
+}
+
+export async function getUserFromRequest(): Promise<JWTPayload | null> {
+  const token = await getAuthToken();
+  if (!token) return null;
+  return verifyToken(token);
 }
 
 export { COOKIE_NAME };

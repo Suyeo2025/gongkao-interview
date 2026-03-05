@@ -24,6 +24,7 @@ interface ExamPaperBuilderProps {
   onAddBankBatch: (items: Array<{ content: string; category?: QuestionCategory | null; sourceFile?: string }>) => void;
   onRemoveBankQuestion: (id: string) => void;
   onUpdateBankQuestion: (id: string, partial: Partial<BankQuestion>) => void;
+  onDeriveBankQuestion?: (originalId: string, content: string, category: QuestionCategory | null) => void;
   onOpenUpload: () => void;
   settings?: Settings;
   onGenerateAnswer?: (content: string) => void;
@@ -46,6 +47,7 @@ export function ExamPaperBuilder({
   onAddBankBatch,
   onRemoveBankQuestion,
   onUpdateBankQuestion,
+  onDeriveBankQuestion,
   onOpenUpload,
   settings,
   onGenerateAnswer,
@@ -165,6 +167,7 @@ export function ExamPaperBuilder({
               onAddBatch={onAddBankBatch}
               onRemove={onRemoveBankQuestion}
               onUpdate={onUpdateBankQuestion}
+              onDerive={onDeriveBankQuestion}
               onOpenUpload={onOpenUpload}
               settings={settings}
               selectedIds={selectedIds}

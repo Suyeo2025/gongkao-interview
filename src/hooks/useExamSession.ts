@@ -133,7 +133,7 @@ export function useExamSession() {
         advanceToNext(updatedSession, paper);
       }
     },
-    [session, timerSeconds]
+    [session]
   );
 
   const advanceToNext = useCallback(
@@ -160,6 +160,12 @@ export function useExamSession() {
 
         const sessions = getExamSessions();
         saveExamSessions([finished, ...sessions]);
+        // Server sync
+        fetch("/api/data/exam-sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(finished),
+        }).catch(() => {});
       } else {
         // Next question
         const nextSession = {
@@ -263,6 +269,12 @@ export function useExamSession() {
 
       const sessions = getExamSessions();
       saveExamSessions([finished, ...sessions]);
+      // Server sync
+      fetch("/api/data/exam-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finished),
+      }).catch(() => {});
     },
     [session]
   );

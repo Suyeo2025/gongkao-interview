@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("member") // "admin" | "member"
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  settings     UserSettings?
+  questions    Question[]
+  history      HistoryEntry[]
+  examPapers   ExamPaper[]
+  examSessions ExamSession[]
+  mentorEvals  MentorEval[]
+
+  @@map("users")
+}
+
+model UserSettings {
+  id        String @id @default(cuid())
+  userId    String @unique @map("user_id")
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      String @default("{}") // JSON blob of Settings interface
+
+  @@map("user_settings")
+}
+
+model Question {
+  id          String   @id
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     String
+  category    String?
+  tags        String   @default("[]")
+  source      String   @default("manual")
+  sourceFile  String?  @map("source_file")
+  derivedFrom String?  @map("derived_from")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("questions")
+}
+
+model HistoryEntry {
+  id        String   @id
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      String   // JSON blob of QAPair
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("history_entries")
+}
+
+model ExamPaper {
+  id        String   @id
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  data      String   // JSON blob
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("exam_papers")
+}
+
+model ExamSession {
+  id        String   @id
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      String   // JSON blob
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("exam_sessions")
+}
+
+model MentorEval {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answerId  String   @map("answer_id")
+  data      String   // JSON blob
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([answerId])
+  @@map("mentor_evals")
+}

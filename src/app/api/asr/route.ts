@@ -1,16 +1,16 @@
 import { randomUUID } from "crypto";
-import { createSession, getSession, deleteSession } from "@/lib/asr-sessions";
+import { createSession, getSession, deleteSession, touchSession } from "@/lib/asr-sessions";
 
 export const runtime = "nodejs";
 
 /**
- * GET /api/asr?apiKey=xxx
+ * GET /api/asr
  * Opens DashScope WebSocket and returns an SSE stream with real-time transcription.
  * Returns sessionId in the first event so the client can send audio via POST.
+ * API Key is passed via X-Api-Key header.
  */
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const apiKey = url.searchParams.get("apiKey");
+  const apiKey = req.headers.get("X-Api-Key");
 
   if (!apiKey) {
     return Response.json({ error: "缺少 API Key" }, { status: 400 });
@@ -66,6 +66,7 @@ export async function POST(req: Request) {
     }
 
     if (action === "audio" && audio) {
+      touchSession(sessionId);
       const buf = Buffer.from(audio, "base64");
       if (session.ws.readyState === 1 /* OPEN */) {
         session.ws.send(buf);

@@ -9,8 +9,28 @@ export function useQuestionBank() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setQuestions(getQuestionBank());
+    // 1. Fast load from localStorage
+    const local = getQuestionBank();
+    setQuestions(local);
     setLoaded(true);
+
+    // 2. Hydrate from server
+    fetch("/api/data/questions")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setQuestions(data);
+          saveQuestionBank(data);
+        } else if (local.length > 0) {
+          // Server has no data but localStorage does — push to server
+          fetch("/api/data/questions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(local),
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const addQuestion = useCallback((content: string, category: QuestionCategory | null = null, source: "manual" | "file_upload" | "homepage" = "manual", sourceFile?: string) => {
@@ -26,11 +46,16 @@ export function useQuestionBank() {
     };
     let added = false;
     setQuestions((prev) => {
-      // Dedup: skip if same content already exists
       if (prev.some((existing) => existing.content.trim() === trimmed)) return prev;
       added = true;
       const next = [q, ...prev];
       saveQuestionBank(next);
+      // Server sync
+      fetch("/api/data/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(q),
+      }).catch(() => {});
       return next;
     });
     return added ? q : null!;
@@ -49,6 +74,12 @@ export function useQuestionBank() {
     setQuestions((prev) => {
       const next = [...newQuestions, ...prev];
       saveQuestionBank(next);
+      // Server sync batch
+      fetch("/api/data/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newQuestions),
+      }).catch(() => {});
       return next;
     });
     return newQuestions;
@@ -58,6 +89,11 @@ export function useQuestionBank() {
     setQuestions((prev) => {
       const next = prev.filter((q) => q.id !== id);
       saveQuestionBank(next);
+      fetch("/api/data/questions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      }).catch(() => {});
       return next;
     });
   }, []);
@@ -66,8 +102,37 @@ export function useQuestionBank() {
     setQuestions((prev) => {
       const next = prev.map((q) => q.id === id ? { ...q, ...partial } : q);
       saveQuestionBank(next);
+      fetch("/api/data/questions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...partial }),
+      }).catch(() => {});
       return next;
     });
+  }, []);
+
+  const deriveQuestion = useCallback((originalId: string, content: string, category: QuestionCategory | null) => {
+    const trimmed = content.trim();
+    const q: BankQuestion = {
+      id: generateId("BQ"),
+      content: trimmed,
+      category,
+      tags: [],
+      source: "edit_derived",
+      derivedFrom: originalId,
+      createdAt: new Date().toISOString(),
+    };
+    setQuestions((prev) => {
+      const next = [q, ...prev];
+      saveQuestionBank(next);
+      fetch("/api/data/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(q),
+      }).catch(() => {});
+      return next;
+    });
+    return q;
   }, []);
 
   const search = useCallback((query: string) => {
@@ -124,6 +189,12 @@ export function useQuestionBank() {
       if (newQuestions.length > 0) {
         updated = [...newQuestions, ...updated];
         changed = true;
+        // Server sync new questions
+        fetch("/api/data/questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newQuestions),
+        }).catch(() => {});
       }
 
       if (!changed) return prev;
@@ -145,6 +216,12 @@ export function useQuestionBank() {
       const next = [...prev];
       next[idx] = { ...next[idx], category };
       saveQuestionBank(next);
+      // Server sync
+      fetch("/api/data/questions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: next[idx].id, category }),
+      }).catch(() => {});
       return next;
     });
     // Fallback: update directly in localStorage if not found in React state
@@ -155,6 +232,12 @@ export function useQuestionBank() {
       if (idx !== -1 && bank[idx].category !== category) {
         bank[idx] = { ...bank[idx], category };
         saveQuestionBank(bank);
+        // Server sync
+        fetch("/api/data/questions", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: bank[idx].id, category }),
+        }).catch(() => {});
       }
     }
   }, []);
@@ -170,7 +253,7 @@ export function useQuestionBank() {
 
   return {
     questions, loaded,
-    addQuestion, addQuestions, removeQuestion, updateQuestion, updateCategoryByContent,
+    addQuestion, addQuestions, removeQuestion, updateQuestion, deriveQuestion, updateCategoryByContent,
     syncFromHistory, search, filterByCategory,
     stats,
   };

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/Icon";
 import { AddQuestionDialog } from "./AddQuestionDialog";
+import { EditQuestionDialog } from "./EditQuestionDialog";
 
 interface QuestionBankPanelProps {
   questions: BankQuestion[];
@@ -13,6 +14,7 @@ interface QuestionBankPanelProps {
   onAddBatch: (items: Array<{ content: string; category?: QuestionCategory | null; sourceFile?: string }>) => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, partial: Partial<BankQuestion>) => void;
+  onDerive?: (originalId: string, content: string, category: QuestionCategory | null) => void;
   onOpenUpload: () => void;
   settings?: Settings;
   /** IDs of questions selected for exam paper building */
@@ -29,6 +31,7 @@ export function QuestionBankPanel({
   onAdd,
   onRemove,
   onUpdate,
+  onDerive,
   onOpenUpload,
   settings,
   selectedIds,
@@ -39,6 +42,7 @@ export function QuestionBankPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<QuestionCategory | "all">("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editQuestion, setEditQuestion] = useState<BankQuestion | null>(null);
 
   const filtered = useMemo(() => {
     let list = questions;
@@ -171,6 +175,12 @@ export function QuestionBankPanel({
                         首页同步
                       </span>
                     )}
+                    {q.source === "edit_derived" && (
+                      <span className="flex items-center gap-0.5 text-amber-500">
+                        <Icon name="edit_note" size={12} />
+                        已编辑
+                      </span>
+                    )}
                     <span>{new Date(q.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -194,6 +204,16 @@ export function QuestionBankPanel({
                       </button>
                     );
                   })()}
+                  {onDerive && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setEditQuestion(q); }}
+                      className="p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                      title="编辑 (创建新版本)"
+                    >
+                      <Icon name="edit" size={16} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => onRemove(q.id)}
@@ -216,6 +236,15 @@ export function QuestionBankPanel({
         onUpdateQuestion={onUpdate}
         settings={settings || DEFAULT_SETTINGS}
       />
+
+      {editQuestion && onDerive && (
+        <EditQuestionDialog
+          open={!!editQuestion}
+          onOpenChange={(open) => { if (!open) setEditQuestion(null); }}
+          question={editQuestion}
+          onSave={onDerive}
+        />
+      )}
     </div>
   );
 }

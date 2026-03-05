@@ -191,6 +191,12 @@ export function addMentorEval(answerId: string, evaluation: ExamEvaluation, full
   };
   store[answerId] = [version, ...(store[answerId] || [])];
   saveMentorEvalStore(store);
+  // Server sync
+  fetch("/api/data/mentor-evals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answerId, ...version }),
+  }).catch(() => {});
   return version;
 }
 

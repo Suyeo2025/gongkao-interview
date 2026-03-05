@@ -9,8 +9,36 @@ export function useExamPapers() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setPapers(getExamPapers());
+    const local = getExamPapers();
+    setPapers(local);
     setLoaded(true);
+
+    fetch("/api/data/exam-papers")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setPapers(data);
+          saveExamPapers(data);
+        } else if (local.length > 0) {
+          // Push localStorage data to server
+          for (const paper of local) {
+            fetch("/api/data/exam-papers", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(paper),
+            }).catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const syncPaperToServer = useCallback((paper: ExamPaper, method: "POST" | "PUT" | "DELETE" = "POST") => {
+    fetch("/api/data/exam-papers", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(method === "DELETE" ? { id: paper.id } : paper),
+    }).catch(() => {});
   }, []);
 
   const createPaper = useCallback((name: string, advanceMode: ExamAdvanceMode = "manual"): ExamPaper => {
@@ -24,26 +52,30 @@ export function useExamPapers() {
     setPapers((prev) => {
       const next = [paper, ...prev];
       saveExamPapers(next);
+      syncPaperToServer(paper, "POST");
       return next;
     });
     return paper;
-  }, []);
+  }, [syncPaperToServer]);
 
   const updatePaper = useCallback((id: string, partial: Partial<ExamPaper>) => {
     setPapers((prev) => {
       const next = prev.map((p) => p.id === id ? { ...p, ...partial } : p);
       saveExamPapers(next);
+      const updated = next.find((p) => p.id === id);
+      if (updated) syncPaperToServer(updated, "PUT");
       return next;
     });
-  }, []);
+  }, [syncPaperToServer]);
 
   const deletePaper = useCallback((id: string) => {
     setPapers((prev) => {
       const next = prev.filter((p) => p.id !== id);
       saveExamPapers(next);
+      syncPaperToServer({ id } as ExamPaper, "DELETE");
       return next;
     });
-  }, []);
+  }, [syncPaperToServer]);
 
   const addQuestionToPaper = useCallback((paperId: string, bankQuestion: BankQuestion, timeLimit: number = 120) => {
     setPapers((prev) => {
@@ -59,9 +91,11 @@ export function useExamPapers() {
         return { ...p, questions: [...p.questions, newQ] };
       });
       saveExamPapers(next);
+      const updated = next.find((p) => p.id === paperId);
+      if (updated) syncPaperToServer(updated, "PUT");
       return next;
     });
-  }, []);
+  }, [syncPaperToServer]);
 
   const removeQuestionFromPaper = useCallback((paperId: string, bankQuestionId: string) => {
     setPapers((prev) => {
@@ -71,9 +105,11 @@ export function useExamPapers() {
         return { ...p, questions: filtered.map((q, i) => ({ ...q, order: i + 1 })) };
       });
       saveExamPapers(next);
+      const updated = next.find((p) => p.id === paperId);
+      if (updated) syncPaperToServer(updated, "PUT");
       return next;
     });
-  }, []);
+  }, [syncPaperToServer]);
 
   const setQuestionTime = useCallback((paperId: string, bankQuestionId: string, timeLimit: number) => {
     setPapers((prev) => {
@@ -87,9 +123,11 @@ export function useExamPapers() {
         };
       });
       saveExamPapers(next);
+      const updated = next.find((p) => p.id === paperId);
+      if (updated) syncPaperToServer(updated, "PUT");
       return next;
     });
-  }, []);
+  }, [syncPaperToServer]);
 
   const reorderQuestions = useCallback((paperId: string, fromIndex: number, toIndex: number) => {
     setPapers((prev) => {
@@ -101,9 +139,11 @@ export function useExamPapers() {
         return { ...p, questions: qs.map((q, i) => ({ ...q, order: i + 1 })) };
       });
       saveExamPapers(next);
+      const updated = next.find((p) => p.id === paperId);
+      if (updated) syncPaperToServer(updated, "PUT");
       return next;
     });
-  }, []);
+  }, [syncPaperToServer]);
 
   return {
     papers, loaded,

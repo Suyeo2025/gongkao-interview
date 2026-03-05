@@ -2,11 +2,15 @@ import WebSocket from "ws";
 
 const WS_URL = "wss://dashscope.aliyuncs.com/api-ws/v1/inference/";
 
+// 空闲超时：最后一次收到音频后 5 分钟无活动才清理（考虑思考时间）
+const SESSION_IDLE_MS = 5 * 60 * 1000;
+
 export interface ASRSession {
   ws: WebSocket;
   taskId: string;
   push: (event: string, data: unknown) => void;
   close: () => void;
+  idleTimer: ReturnType<typeof setTimeout>;
 }
 
 // Module-level store — shared across route handlers in the same process
@@ -19,9 +23,23 @@ export function getSession(id: string) {
 export function deleteSession(id: string) {
   const s = sessions.get(id);
   if (s) {
+    clearTimeout(s.idleTimer);
     try { s.ws.close(); } catch { /* ignore */ }
     sessions.delete(id);
   }
+}
+
+/** 每次收到音频时调用，重置空闲计时器 */
+export function touchSession(id: string) {
+  const s = sessions.get(id);
+  if (!s) return;
+  clearTimeout(s.idleTimer);
+  s.idleTimer = setTimeout(() => {
+    console.warn("[ASR] session %s idle timeout (%ds no audio)", id, SESSION_IDLE_MS / 1000);
+    s.push("error", { message: "长时间无音频输入，会话已关闭" });
+    s.close();
+    deleteSession(id);
+  }, SESSION_IDLE_MS);
 }
 
 export function createSession(
@@ -35,7 +53,14 @@ export function createSession(
     headers: { Authorization: `bearer ${apiKey}` },
   });
 
-  const session: ASRSession = { ws, taskId, push, close };
+  const idleTimer = setTimeout(() => {
+    console.warn("[ASR] session %s idle timeout (%ds no audio)", sessionId, SESSION_IDLE_MS / 1000);
+    push("error", { message: "长时间无音频输入，会话已关闭" });
+    close();
+    deleteSession(sessionId);
+  }, SESSION_IDLE_MS);
+
+  const session: ASRSession = { ws, taskId, push, close, idleTimer };
   sessions.set(sessionId, session);
 
   ws.on("open", () => {

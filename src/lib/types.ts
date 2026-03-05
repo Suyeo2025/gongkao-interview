@@ -222,8 +222,9 @@ export interface BankQuestion {
   content: string;
   category: QuestionCategory | null;
   tags: string[];
-  source: "manual" | "file_upload" | "homepage";
+  source: "manual" | "file_upload" | "homepage" | "edit_derived";
   sourceFile?: string;
+  derivedFrom?: string;
   createdAt: string;
 }
 
