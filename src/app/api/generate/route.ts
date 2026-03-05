@@ -33,27 +33,39 @@ async function generateGemini(question: string, apiKey: string, config: { modelN
   });
 }
 
+function isThinkingModel(modelName: string): boolean {
+  return /qwen3/.test(modelName);
+}
+
 async function generateQwen(question: string, apiKey: string, config: { modelName?: string; temperature?: number }) {
   const client = new OpenAI({
     apiKey,
     baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   });
 
-  const response = await client.chat.completions.create({
-    model: config.modelName || "qwen-plus",
+  const modelName = config.modelName || "qwen-plus";
+  const thinking = isThinkingModel(modelName);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const createParams: any = {
+    model: modelName,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: question },
     ],
     temperature: config.temperature ?? 0.7,
     stream: true,
-  });
+  };
+  if (thinking) createParams.enable_thinking = true;
+
+  const response = await client.chat.completions.create(createParams) as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
 
   return new ReadableStream({
     async start(controller) {
       try {
         for await (const chunk of response) {
-          const text = chunk.choices[0]?.delta?.content;
+          const delta = chunk.choices[0]?.delta;
+          const text = delta?.content;
           if (text) {
             controller.enqueue(new TextEncoder().encode(text));
           }

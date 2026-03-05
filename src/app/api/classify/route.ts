@@ -33,14 +33,18 @@ async function classifyQwen(question: string, apiKey: string, modelName?: string
     apiKey,
     baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   });
-  const response = await client.chat.completions.create({
-    model: modelName || "qwen-turbo",
+  const model = modelName || "qwen-turbo";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const createParams: any = {
+    model,
     messages: [
       { role: "system", content: CLASSIFY_PROMPT },
       { role: "user", content: question },
     ],
     temperature: 0.1,
-  });
+  };
+  if (/qwen3/.test(model)) createParams.enable_thinking = true;
+  const response = await client.chat.completions.create(createParams);
   return response.choices[0]?.message?.content?.trim() || "";
 }
 
