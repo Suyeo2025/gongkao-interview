@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Icon } from "@/components/Icon";
-import { ExamPaper, ExamMode, ASRWord } from "@/lib/types";
+import { ExamPaper, ExamMode } from "@/lib/types";
 import { useASR } from "@/hooks/useASR";
 import { useExamSession, ExamPhase } from "@/hooks/useExamSession";
 import { ExamTimer } from "./ExamTimer";
@@ -50,9 +50,9 @@ export function ExamSimulation({
   const {
     status: asrStatus,
     transcript,
-    interimText,
     words,
     error: asrError,
+    audioUrl,
     startRecording,
     stopRecording,
     resetASR,
@@ -60,6 +60,8 @@ export function ExamSimulation({
 
   const [showConfirmExit, setShowConfirmExit] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [lastAudioUrl, setLastAudioUrl] = useState<string | null>(null);
+  const processingRef = useRef(false);
 
   // Start exam on mount
   useEffect(() => {
@@ -67,7 +69,7 @@ export function ExamSimulation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Start/resume timer when ASR microphone is connected
+  // Start timer when recording starts (mic connected)
   useEffect(() => {
     if (asrStatus === "recording" && phase === "answering" && !isPaused) {
       if (!isTimerRunning) {
@@ -80,19 +82,23 @@ export function ExamSimulation({
 
   // Timer expired handling
   useEffect(() => {
-    if (timerExpired && phase === "answering") {
-      if (mode === "exam") {
-        // Global timer expired → save current transcript + mark remaining as skipped
-        stopRecording();
-        setTimeout(() => {
-          const currentTranscript = (transcript + interimText).trim() || "（超时未答）";
-          finishExam(paper, currentTranscript, words);
+    if (timerExpired && phase === "answering" && !processingRef.current) {
+      (async () => {
+        processingRef.current = true;
+        if (mode === "exam") {
+          if (asrStatus === "recording") {
+            const result = await stopRecording(dashscopeApiKey);
+            if (result) setLastAudioUrl(result.audioUrl);
+            finishExam(paper, result?.transcript || "（超时未答）", result?.words || []);
+          } else {
+            finishExam(paper, "（超时未答）", []);
+          }
           resetASR();
-        }, 500);
-      } else {
-        // Practice mode: single question timer expired
-        handleFinishAnswer();
-      }
+        } else {
+          await doFinishAnswer();
+        }
+        processingRef.current = false;
+      })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timerExpired]);
@@ -114,34 +120,48 @@ export function ExamSimulation({
 
   // Start recording for current question
   const handleStartRecording = useCallback(() => {
-    if (!dashscopeApiKey) return;
     resetASR();
-    startRecording(dashscopeApiKey);
-  }, [dashscopeApiKey, resetASR, startRecording]);
+    setLastAudioUrl(null);
+    startRecording();
+  }, [resetASR, startRecording]);
 
-  // Finish current answer: stop recording, save answer, advance
-  const handleFinishAnswer = useCallback(() => {
-    stopRecording();
+  // Core finish logic (shared by button click and timer expiry)
+  const doFinishAnswer = useCallback(async () => {
+    if (asrStatus === "recording") {
+      const result = await stopRecording(dashscopeApiKey);
+      if (result) {
+        setLastAudioUrl(result.audioUrl);
+        finishQuestion(result.transcript, result.words, paper);
+      } else {
+        finishQuestion("", [], paper);
+      }
+    } else {
+      finishQuestion(transcript || "", words, paper);
+    }
+    resetASR();
+  }, [asrStatus, stopRecording, dashscopeApiKey, finishQuestion, transcript, words, paper, resetASR]);
 
-    // Small delay to let final ASR results come in
-    setTimeout(() => {
-      finishQuestion(transcript + interimText, words, paper);
-      resetASR();
-    }, 500);
-  }, [stopRecording, finishQuestion, transcript, interimText, words, paper, resetASR]);
+  // Finish current answer: stop recording, transcribe, save answer
+  const handleFinishAnswer = useCallback(async () => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    await doFinishAnswer();
+    processingRef.current = false;
+  }, [doFinishAnswer]);
 
   // Advance to next question (after review in practice mode)
   const handleNextQuestion = useCallback(() => {
     advanceQuestion(paper);
     resetASR();
+    setLastAudioUrl(null);
   }, [advanceQuestion, paper, resetASR]);
 
   // Skip current question
   const handleSkip = useCallback(() => {
-    stopRecording();
     finishQuestion("（跳过）", [], paper);
     resetASR();
-  }, [stopRecording, finishQuestion, paper, resetASR]);
+    setLastAudioUrl(null);
+  }, [finishQuestion, paper, resetASR]);
 
   // Pause/resume
   const handleTogglePause = useCallback(() => {
@@ -150,31 +170,33 @@ export function ExamSimulation({
       setIsPaused(false);
     } else {
       pauseTimer();
-      if (asrStatus === "recording") {
-        stopRecording();
-      }
       setIsPaused(true);
     }
-  }, [isPaused, pauseTimer, resumeTimer, asrStatus, stopRecording]);
+  }, [isPaused, pauseTimer, resumeTimer]);
 
   // Exit exam
   const handleExit = useCallback(() => {
-    stopRecording();
     resetASR();
     exitExam();
     onExit();
-  }, [stopRecording, resetASR, exitExam, onExit]);
+  }, [resetASR, exitExam, onExit]);
 
   // Finish exam early (交卷)
-  const handleFinishExamEarly = useCallback(() => {
-    stopRecording();
-    const currentTranscript = (transcript + interimText).trim() || undefined;
-    finishExam(paper, currentTranscript, currentTranscript ? words : undefined);
+  const handleFinishExamEarly = useCallback(async () => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    if (asrStatus === "recording") {
+      const result = await stopRecording(dashscopeApiKey);
+      finishExam(paper, result?.transcript, result?.words);
+    } else {
+      finishExam(paper, transcript || undefined, transcript ? words : undefined);
+    }
     resetASR();
-  }, [stopRecording, finishExam, paper, transcript, interimText, words, resetASR]);
+    processingRef.current = false;
+  }, [asrStatus, stopRecording, dashscopeApiKey, finishExam, paper, transcript, words, resetASR]);
 
   const isRecording = asrStatus === "recording";
-  const isConnecting = asrStatus === "connecting";
+  const isProcessing = asrStatus === "processing";
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden select-none">
@@ -297,6 +319,12 @@ export function ExamSimulation({
                 {session.answers[session.answers.length - 1]?.asrTranscript || "（未作答）"}
               </p>
             </div>
+            {/* Playback button */}
+            {lastAudioUrl && (
+              <div className="mt-3">
+                <audio controls src={lastAudioUrl} className="mx-auto h-8 opacity-70" />
+              </div>
+            )}
             <button
               type="button"
               onClick={handleNextQuestion}
@@ -344,7 +372,7 @@ export function ExamSimulation({
             <ExamTranscript
               status={asrStatus}
               transcript={transcript}
-              interimText={interimText}
+              audioUrl={audioUrl}
             />
 
             {/* ASR error */}
@@ -357,16 +385,18 @@ export function ExamSimulation({
             {/* Action buttons */}
             <div className="flex items-center gap-4">
               {/* Skip button */}
-              <button
-                type="button"
-                onClick={handleSkip}
-                className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/60 text-xs transition-colors"
-              >
-                跳过
-              </button>
+              {!isProcessing && (
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/60 text-xs transition-colors"
+                >
+                  跳过
+                </button>
+              )}
 
               {/* Mic button */}
-              {!isRecording && !isConnecting ? (
+              {!isRecording && !isProcessing ? (
                 <button
                   type="button"
                   onClick={handleStartRecording}
@@ -375,14 +405,13 @@ export function ExamSimulation({
                 >
                   <Icon name="mic" size={28} className="text-white" />
                 </button>
-              ) : isConnecting ? (
-                <button
-                  type="button"
-                  disabled
-                  className="w-16 h-16 rounded-full bg-zinc-600 flex items-center justify-center"
-                >
-                  <Icon name="progress_activity" size={28} className="text-white animate-spin" />
-                </button>
+              ) : isProcessing ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-16 h-16 rounded-full bg-zinc-700 flex items-center justify-center">
+                    <Icon name="progress_activity" size={28} className="text-white animate-spin" />
+                  </div>
+                  <span className="text-xs text-white/50">识别中…</span>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -395,7 +424,7 @@ export function ExamSimulation({
               )}
 
               {/* Finish exam early (exam mode, not first question) */}
-              {mode === "exam" && currentIdx > 0 && (
+              {mode === "exam" && currentIdx > 0 && !isProcessing && (
                 <button
                   type="button"
                   onClick={handleFinishExamEarly}

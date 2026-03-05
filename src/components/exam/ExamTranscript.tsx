@@ -5,12 +5,12 @@ import { ASRStatus } from "@/hooks/useASR";
 interface ExamTranscriptProps {
   status: ASRStatus;
   transcript: string;
-  interimText: string;
+  audioUrl: string | null;
 }
 
-export function ExamTranscript({ status, transcript, interimText }: ExamTranscriptProps) {
-  const displayText = transcript + (interimText ? interimText : "");
+export function ExamTranscript({ status, transcript, audioUrl }: ExamTranscriptProps) {
   const isRecording = status === "recording";
+  const isProcessing = status === "processing";
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -22,20 +22,32 @@ export function ExamTranscript({ status, transcript, interimText }: ExamTranscri
         </div>
       )}
 
+      {/* Processing indicator */}
+      {isProcessing && (
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <span className="text-xs text-white/50">语音识别中…</span>
+        </div>
+      )}
+
       {/* Transcript area */}
       <div className="min-h-[60px] max-h-[120px] overflow-y-auto rounded-xl bg-black/30 backdrop-blur-sm px-4 py-3 scrollbar-thin">
-        {displayText ? (
-          <p className="text-sm sm:text-base text-white/85 leading-relaxed">
-            {transcript && <span>{transcript}</span>}
-            {interimText && (
-              <span className="text-amber-400/80">{interimText}</span>
+        {transcript ? (
+          <div>
+            <p className="text-sm sm:text-base text-white/85 leading-relaxed">
+              {transcript}
+            </p>
+            {/* Playback */}
+            {audioUrl && status === "idle" && (
+              <div className="mt-2">
+                <audio controls src={audioUrl} className="w-full h-8 opacity-70" />
+              </div>
             )}
-          </p>
+          </div>
         ) : (
           <p className="text-sm text-white/30 text-center">
-            {status === "connecting" ? "正在连接语音识别…" :
-             status === "recording" ? "开始说话，语音将实时转为文字…" :
-             status === "processing" ? "正在处理…" :
+            {isRecording ? "正在录音，停止后将识别为文字…" :
+             isProcessing ? "正在处理录音…" :
              "点击麦克风开始录音"}
           </p>
         )}
