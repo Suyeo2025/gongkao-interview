@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
+import { Logo } from "@/components/Logo";
 import { Sidebar } from "@/components/Sidebar";
 import { QuestionInput } from "@/components/QuestionInput";
 import { AnswerCard } from "@/components/AnswerCard";
@@ -504,7 +505,7 @@ function HomeInner() {
                 !isGenerating && (
                   <div className="text-center py-10 sm:py-14 lg:py-20">
                     <div className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                      <img src="/logo.svg" alt="" className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20" />
+                      <Logo className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 opacity-60" />
                     </div>
                     <h3 className="text-sm sm:text-base font-semibold text-zinc-700 mb-1.5 sm:mb-2">
                       开始你的面试模拟

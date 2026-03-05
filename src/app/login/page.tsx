@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -84,8 +85,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8 sm:mb-10">
-          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-zinc-800 flex items-center justify-center mx-auto mb-4 sm:mb-5 shadow-lg shadow-zinc-300/30">
-            <img src="/logo.svg" alt="登科录" className="w-12 h-12 sm:w-14 sm:h-14" />
+          <div className="flex items-center justify-center mx-auto mb-4 sm:mb-5">
+            <Logo className="w-16 h-16 sm:w-20 sm:h-20" />
           </div>
           <h1 className="text-xl sm:text-2xl font-semibold text-stone-800 tracking-wider">
             登科录

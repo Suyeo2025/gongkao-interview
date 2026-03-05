@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "./Icon";
+import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useCallback } from "react";
@@ -75,7 +76,7 @@ export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
           <Icon name="menu" size={22} />
         </Button>
 
-        <img src="/logo.svg" alt="登科录" className="w-7 h-7 sm:w-8 sm:h-8" />
+        <Logo className="w-7 h-7 sm:w-8 sm:h-8" />
         <div>
           <h1 className="text-xs sm:text-sm font-semibold text-zinc-800 tracking-tight">登科录</h1>
           <p className="text-[10px] text-zinc-400 hidden sm:block">笔墨之间 · 登科有路</p>
