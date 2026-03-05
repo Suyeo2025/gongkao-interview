@@ -19,6 +19,8 @@ interface AnswerCardProps {
   pair: QAPair;
   isStreaming?: boolean;
   streamText?: string;
+  thinkingText?: string;
+  isThinking?: boolean;
   onToggleFavorite?: (id: string) => void;
   onDelete?: (id: string) => void;
   // TTS
@@ -58,6 +60,8 @@ export function AnswerCard({
   pair,
   isStreaming = false,
   streamText = "",
+  thinkingText = "",
+  isThinking = false,
   onToggleFavorite,
   onDelete,
   ttsStatus,
@@ -204,6 +208,26 @@ export function AnswerCard({
       <div className="p-3 sm:p-5 md:p-6">
         {isStreaming || !hasSections ? (
           <div className="relative">
+            {/* Thinking process box */}
+            {isStreaming && thinkingText && (
+              <details open={isThinking} className="mb-4 rounded-xl border border-zinc-200/60 bg-zinc-50/50 overflow-hidden">
+                <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer text-xs text-zinc-500 hover:bg-zinc-100/50 transition-colors select-none">
+                  {isThinking ? (
+                    <Icon name="progress_activity" size={14} className="animate-spin text-amber-500" />
+                  ) : (
+                    <Icon name="psychology" size={14} className="text-zinc-400" />
+                  )}
+                  <span>{isThinking ? "思考中..." : "思考过程"}</span>
+                  <span className="text-zinc-300 ml-auto">{thinkingText.length} 字</span>
+                </summary>
+                <div className="px-3 pb-3 text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto border-t border-zinc-100">
+                  {thinkingText}
+                  {isThinking && (
+                    <span className="inline-block w-1.5 h-3 bg-zinc-300 animate-pulse ml-0.5 align-text-bottom rounded-sm" />
+                  )}
+                </div>
+              </details>
+            )}
             <MarkdownRenderer content={displayRaw} />
             {isStreaming && (
               <span className="inline-block w-2.5 h-5 bg-gradient-to-t from-amber-500 to-amber-400 animate-pulse ml-1 align-text-bottom rounded-sm" />

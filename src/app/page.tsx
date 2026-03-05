@@ -26,7 +26,7 @@ function HomeInner() {
   const router = useRouter();
   const { settings, update: updateSettings, reset: resetSettings, loaded: settingsLoaded } = useSettings();
   const { history, addPair, updatePair, toggleFavorite, removePair, stats, loaded: historyLoaded } = useQuestions();
-  const { isGenerating, streamText, error, generate, stop, clearError } = useGenerate();
+  const { isGenerating, streamText, thinkingText, isThinking, error, generate, stop, clearError } = useGenerate();
   const { status: ttsStatus, error: ttsError, activeAnswerId: ttsActiveId, timestamps: ttsTimestamps, currentWordIndex: ttsWordIndex, plainText: ttsPlainText, duration: ttsDuration, currentTime: ttsCurrentTime, rate: ttsRate, completionInfo: ttsCompletionInfo, speak, pause, resume, stop: stopTTS, setRate: setTTSRate, seek: seekTTS, clearCompletion: clearTTSCompletion, listCachedVoices: listCached, clearError: clearTTSError } = useTTS();
   const { questions: bankQuestions, addQuestion: addToBank, syncFromHistory: syncBankFromHistory, updateCategoryByContent: updateBankCategory } = useQuestionBank();
 
@@ -470,6 +470,8 @@ function HomeInner() {
                   pair={displayPair}
                   isStreaming={isStreaming}
                   streamText={streamText}
+                  thinkingText={thinkingText}
+                  isThinking={isThinking}
                   onToggleFavorite={isStreaming ? undefined : toggleFavorite}
                   onDelete={isStreaming ? undefined : removePair}
                   onImportToBank={isStreaming ? undefined : handleImportToBank}

@@ -6,6 +6,8 @@ import { Settings } from "@/lib/types";
 interface GenerateState {
   isGenerating: boolean;
   streamText: string;
+  thinkingText: string;
+  isThinking: boolean;
   error: string | null;
 }
 
@@ -13,6 +15,8 @@ export function useGenerate() {
   const [state, setState] = useState<GenerateState>({
     isGenerating: false,
     streamText: "",
+    thinkingText: "",
+    isThinking: false,
     error: null,
   });
   const abortRef = useRef<AbortController | null>(null);
@@ -26,7 +30,7 @@ export function useGenerate() {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      setState({ isGenerating: true, streamText: "", error: null });
+      setState({ isGenerating: true, streamText: "", thinkingText: "", isThinking: false, error: null });
 
       try {
         const res = await fetch("/api/generate", {
@@ -53,23 +57,56 @@ export function useGenerate() {
         if (!reader) throw new Error("无法读取响应流");
 
         const decoder = new TextDecoder();
-        let fullText = "";
+        let rawBuffer = "";
+        let thinkingContent = "";
+        let answerContent = "";
+        let inThinking = false;
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          fullText += chunk;
-          setState((prev) => ({
-            ...prev,
-            streamText: fullText,
-          }));
+          rawBuffer += decoder.decode(value, { stream: true });
+
+          // Parse thinking markers
+          if (!inThinking && rawBuffer.includes("<!--thinking-->")) {
+            inThinking = true;
+            rawBuffer = rawBuffer.replace("<!--thinking-->", "");
+            setState((prev) => ({ ...prev, isThinking: true }));
+          }
+
+          if (inThinking && rawBuffer.includes("<!--/thinking-->")) {
+            const parts = rawBuffer.split("<!--/thinking-->");
+            thinkingContent += parts[0];
+            answerContent += parts.slice(1).join("");
+            rawBuffer = "";
+            inThinking = false;
+            setState((prev) => ({
+              ...prev,
+              thinkingText: thinkingContent,
+              streamText: answerContent,
+              isThinking: false,
+            }));
+          } else if (inThinking) {
+            thinkingContent += rawBuffer;
+            rawBuffer = "";
+            setState((prev) => ({
+              ...prev,
+              thinkingText: thinkingContent,
+            }));
+          } else {
+            answerContent += rawBuffer;
+            rawBuffer = "";
+            setState((prev) => ({
+              ...prev,
+              streamText: answerContent,
+            }));
+          }
         }
 
-        setState((prev) => ({ ...prev, isGenerating: false }));
+        setState((prev) => ({ ...prev, isGenerating: false, isThinking: false }));
         abortRef.current = null;
-        return fullText;
+        return answerContent;
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           setState((prev) => ({
@@ -81,7 +118,7 @@ export function useGenerate() {
         }
 
         const message = err instanceof Error ? err.message : "生成失败";
-        setState({ isGenerating: false, streamText: "", error: message });
+        setState({ isGenerating: false, streamText: "", thinkingText: "", isThinking: false, error: message });
         throw err;
       }
     },

@@ -63,12 +63,29 @@ async function generateQwen(question: string, apiKey: string, config: { modelNam
   return new ReadableStream({
     async start(controller) {
       try {
+        let inThinking = thinking;
+        if (thinking) {
+          controller.enqueue(new TextEncoder().encode("<!--thinking-->"));
+        }
         for await (const chunk of response) {
-          const delta = chunk.choices[0]?.delta;
-          const text = delta?.content;
-          if (text) {
-            controller.enqueue(new TextEncoder().encode(text));
+          const delta = chunk.choices[0]?.delta as Record<string, unknown>;
+          // reasoning_content = thinking phase, content = answer phase
+          const reasoningText = delta?.reasoning_content as string | undefined;
+          const contentText = delta?.content as string | undefined;
+
+          if (reasoningText) {
+            controller.enqueue(new TextEncoder().encode(reasoningText));
           }
+          if (contentText) {
+            if (inThinking) {
+              controller.enqueue(new TextEncoder().encode("<!--/thinking-->"));
+              inThinking = false;
+            }
+            controller.enqueue(new TextEncoder().encode(contentText));
+          }
+        }
+        if (inThinking) {
+          controller.enqueue(new TextEncoder().encode("<!--/thinking-->"));
         }
         controller.close();
       } catch (err) {
