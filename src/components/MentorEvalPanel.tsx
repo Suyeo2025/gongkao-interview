@@ -95,9 +95,12 @@ export function MentorEvalPanel({ answerId, questionContent, answerContent, sett
   const displayText = isEvaluating ? liveText : (activeVersion?.fullText ?? "");
 
   const evaluate = useCallback(async () => {
-    const apiKey = settings.textProvider === "qwen" ? settings.qwenApiKey : settings.geminiApiKey;
+    const provider = settings.mentorUseShared ? settings.textProvider : settings.mentorProvider;
+    const modelName = settings.mentorUseShared ? settings.modelName : settings.mentorModelName;
+    const temperature = settings.mentorUseShared ? 0.5 : settings.mentorTemperature;
+    const apiKey = provider === "qwen" ? settings.qwenApiKey : settings.geminiApiKey;
     if (!apiKey) {
-      setError(`请先配置 ${settings.textProvider === "qwen" ? "DashScope" : "Gemini"} API Key`);
+      setError(`请先配置 ${provider === "qwen" ? "DashScope" : "Gemini"} API Key`);
       return;
     }
 
@@ -122,10 +125,10 @@ export function MentorEvalPanel({ answerId, questionContent, answerContent, sett
             timeLimit: 120,
           }],
           apiKey,
-          provider: settings.textProvider,
+          provider,
           config: {
-            modelName: settings.modelName,
-            temperature: 0.5,
+            modelName,
+            temperature,
           },
         }),
         signal: controller.signal,
@@ -153,7 +156,9 @@ export function MentorEvalPanel({ answerId, questionContent, answerContent, sett
 
       const finalEval = parseEvalBlock(accumulated);
       if (finalEval) {
-        finalEval.modelUsed = `${settings.textProvider}/${settings.modelName}`;
+        const usedProvider = settings.mentorUseShared ? settings.textProvider : settings.mentorProvider;
+        const usedModel = settings.mentorUseShared ? settings.modelName : settings.mentorModelName;
+        finalEval.modelUsed = `${usedProvider}/${usedModel}`;
         setLiveEval(finalEval);
         // Persist
         const fullText = stripEvalBlocks(accumulated);
