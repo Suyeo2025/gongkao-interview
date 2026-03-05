@@ -156,7 +156,7 @@ export default function UserDetailPage() {
           <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500" onClick={() => router.push("/admin")}>
             <Icon name="arrow_back" size={20} />
           </Button>
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-sm">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-800 flex items-center justify-center shadow-sm">
             <Icon name="person" size={16} className="text-white" />
           </div>
           <div>

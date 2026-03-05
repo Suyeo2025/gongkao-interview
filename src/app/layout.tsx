@@ -5,8 +5,8 @@ import { UserProvider, UserInfo } from "@/lib/user-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "公考面试模拟助手",
-  description: "AI 驱动的公务员面试模拟练习工具，五板块结构化作答",
+  title: "登科录",
+  description: "AI 驱动的公务员面试模拟练习，结构化作答训练",
 };
 
 export const viewport: Viewport = {

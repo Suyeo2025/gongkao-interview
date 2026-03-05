@@ -75,12 +75,10 @@ export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
           <Icon name="menu" size={22} />
         </Button>
 
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-sm">
-          <span className="text-white text-xs sm:text-sm font-bold">考</span>
-        </div>
+        <img src="/logo.svg" alt="登科录" className="w-7 h-7 sm:w-8 sm:h-8" />
         <div>
-          <h1 className="text-xs sm:text-sm font-semibold text-zinc-800 tracking-tight">公考面试模拟助手</h1>
-          <p className="text-[10px] text-zinc-400 hidden sm:block">AI 驱动 · 五板块结构化作答</p>
+          <h1 className="text-xs sm:text-sm font-semibold text-zinc-800 tracking-tight">登科录</h1>
+          <p className="text-[10px] text-zinc-400 hidden sm:block">笔墨之间 · 登科有路</p>
         </div>
       </div>
 
