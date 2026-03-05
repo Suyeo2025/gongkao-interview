@@ -23,7 +23,7 @@ interface VersionHistoryDialogProps {
 const SOURCE_LABELS: Record<SectionVersion["source"], { label: string; color: string; icon: string }> = {
   ai_original:   { label: "AI 原版",    color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: "auto_awesome" },
   manual_edit:   { label: "手动编辑",   color: "bg-amber-50 text-amber-700 border-amber-200",       icon: "edit_note" },
-  ai_regenerate: { label: "AI 重写",    color: "bg-purple-50 text-purple-700 border-purple-200",    icon: "auto_fix_high" },
+  ai_regenerate: { label: "AI 重写",    color: "bg-amber-50 text-amber-700 border-amber-200",    icon: "auto_fix_high" },
 };
 
 function formatTime(iso: string) {

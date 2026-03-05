@@ -139,7 +139,7 @@ export function VoiceCloneDialog({
       <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-base">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-zinc-600 to-zinc-700 flex items-center justify-center">
               <Icon name="mic" size={18} className="text-white" />
             </div>
             声音复刻
@@ -266,7 +266,7 @@ export function VoiceCloneDialog({
           <Button
             onClick={handleClone}
             disabled={cloneLoading || (cloneMode === "url" ? !cloneUrl.trim() : !cloneVoiceId.trim())}
-            className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl h-10 text-sm shadow-sm"
+            className="w-full bg-gradient-to-r from-zinc-700 to-zinc-800 hover:from-zinc-800 hover:to-zinc-900 text-white rounded-xl h-10 text-sm shadow-sm"
           >
             {cloneLoading ? (
               <span className="inline-flex items-center gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { SectionKey, Settings } from "@/lib/types";
+import { SectionKey, Settings, AnswerSections } from "@/lib/types";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { Icon } from "./Icon";
 import {
@@ -18,6 +18,7 @@ interface SectionRegenerateDialogProps {
   sectionKey: SectionKey;
   currentContent: string;
   questionContent: string;
+  allSections?: AnswerSections;
   settings: Settings;
   onRegenerated: (newContent: string) => void;
 }
@@ -29,6 +30,7 @@ export function SectionRegenerateDialog({
   sectionKey,
   currentContent,
   questionContent,
+  allSections,
   settings,
   onRegenerated,
 }: SectionRegenerateDialogProps) {
@@ -57,6 +59,7 @@ export function SectionRegenerateDialog({
           question: questionContent,
           sectionKey,
           currentContent,
+          allSections,
           instruction: instruction.trim(),
           provider: settings.textProvider,
           apiKey: settings.textProvider === "gemini" ? settings.geminiApiKey : settings.qwenApiKey,
@@ -131,7 +134,7 @@ export function SectionRegenerateDialog({
       <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <Icon name="auto_awesome" size={18} className="text-purple-500" />
+            <Icon name="auto_awesome" size={18} className="text-amber-500" />
             AI 重新生成 - {sectionTitle}
           </DialogTitle>
         </DialogHeader>
@@ -144,7 +147,7 @@ export function SectionRegenerateDialog({
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
               placeholder="例如：更简洁一些、加入具体案例、语气更自然..."
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-300 placeholder:text-zinc-400"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-300 placeholder:text-zinc-400"
               rows={3}
               disabled={isGenerating}
               onKeyDown={(e) => {
@@ -172,7 +175,7 @@ export function SectionRegenerateDialog({
                 type="button"
                 onClick={handleGenerate}
                 disabled={!instruction.trim()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-purple-500 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <Icon name="auto_awesome" size={14} />
                 生成
@@ -204,7 +207,7 @@ export function SectionRegenerateDialog({
                 <div className="relative">
                   <MarkdownRenderer content={streamText} />
                   {isGenerating && (
-                    <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse ml-0.5 align-text-bottom rounded-sm" />
+                    <span className="inline-block w-2 h-4 bg-amber-400 animate-pulse ml-0.5 align-text-bottom rounded-sm" />
                   )}
                 </div>
               ) : isGenerating ? (

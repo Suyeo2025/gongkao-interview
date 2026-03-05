@@ -298,7 +298,7 @@ export interface ExamSession {
 export const CATEGORY_COLORS: Record<QuestionCategory, string> = {
   综合分析: "bg-blue-50 text-blue-600 border-blue-200/60",
   组织策划: "bg-emerald-50 text-emerald-600 border-emerald-200/60",
-  人际沟通: "bg-purple-50 text-purple-600 border-purple-200/60",
+  人际沟通: "bg-teal-50 text-teal-600 border-teal-200/60",
   情景模拟: "bg-orange-50 text-orange-600 border-orange-200/60",
   应急应变: "bg-rose-50 text-rose-600 border-rose-200/60",
 };

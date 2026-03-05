@@ -10,7 +10,7 @@ import { SectionRegenerateDialog } from "./SectionRegenerateDialog";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { TTSStatus, CompletionInfo } from "@/hooks/useTTS";
 import { WordTimestamp, CachedVoiceInfo } from "@/lib/audio-cache";
-import { TTS_RATES, SectionKey, SectionMeta, SectionVersion, Settings } from "@/lib/types";
+import { TTS_RATES, SectionKey, SectionMeta, SectionVersion, Settings, AnswerSections } from "@/lib/types";
 
 interface AnswerSectionProps {
   title: string;
@@ -41,6 +41,7 @@ interface AnswerSectionProps {
   sectionKey?: SectionKey;
   sectionMeta?: SectionMeta;
   questionContent?: string;
+  allSections?: AnswerSections;
   settings?: Settings;
   onSectionUpdate?: (newContent: string, source: SectionVersion["source"], instruction?: string) => void;
   onAnnotationAdd?: (content: string) => void;
@@ -74,6 +75,7 @@ export function AnswerSection({
   sectionKey,
   sectionMeta,
   questionContent,
+  allSections,
   settings,
   onSectionUpdate,
   onAnnotationAdd,
@@ -234,7 +236,7 @@ export function AnswerSection({
                 <button
                   type="button"
                   onClick={() => setRegenerateOpen(true)}
-                  className="p-1 rounded-md text-zinc-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                  className="p-1 rounded-md text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                   title="@AI 重新生成"
                 >
                   <Icon name="auto_awesome" size={16} />
@@ -319,6 +321,7 @@ export function AnswerSection({
           sectionKey={sectionKey}
           currentContent={content}
           questionContent={questionContent}
+          allSections={allSections}
           settings={settings}
           onRegenerated={(newContent) => {
             onSectionUpdate?.(newContent, "ai_regenerate");

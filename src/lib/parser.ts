@@ -107,5 +107,7 @@ export function markdownToPlainText(md: string): string {
     .replace(/>\s?/gm, "")
     .replace(/\|[^\n]+\|/g, "")
     .replace(/[-=]{3,}/g, "")
+    .replace(/[═─]{2,}/g, "")
+    .replace(/【[一二三四五六七八九十][、．.][^】]*】/g, "")
     .trim();
 }

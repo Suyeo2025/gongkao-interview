@@ -64,85 +64,87 @@ export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
   };
 
   return (
-    <header className="h-12 sm:h-14 bg-white/80 backdrop-blur-xl px-2 sm:px-4 md:px-6 flex items-center justify-between shrink-0 border-b border-zinc-100">
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Mobile hamburger menu */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden h-10 w-10 text-zinc-600"
-          onClick={onToggleSidebar}
-        >
-          <Icon name="menu" size={22} />
-        </Button>
+    <>
+      <header className="h-12 sm:h-14 bg-white/80 backdrop-blur-xl px-2 sm:px-4 md:px-6 flex items-center justify-between shrink-0 border-b border-zinc-100">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mobile hamburger menu */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden h-10 w-10 text-zinc-600"
+            onClick={onToggleSidebar}
+          >
+            <Icon name="menu" size={22} />
+          </Button>
 
-        <Logo className="w-7 h-7 sm:w-8 sm:h-8" />
-        <div>
-          <h1 className="text-xs sm:text-sm font-semibold text-zinc-800 tracking-tight">登科录</h1>
-          <p className="text-[10px] text-zinc-400 hidden sm:block">笔墨之间 · 登科有路</p>
+          <Logo className="w-7 h-7 sm:w-8 sm:h-8" />
+          <div>
+            <h1 className="text-xs sm:text-sm font-semibold text-zinc-800 tracking-tight">登科录</h1>
+            <p className="text-[10px] text-zinc-400 hidden sm:block">笔墨之间 · 登科有路</p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-0.5 sm:gap-1">
-        {/* Username display */}
-        {user && (
-          <span className="text-[11px] text-zinc-400 mr-1 hidden sm:inline">
-            {user.username}
-          </span>
-        )}
+        <div className="flex items-center gap-0.5 sm:gap-1">
+          {/* Username display */}
+          {user && (
+            <span className="text-[11px] text-zinc-400 mr-1 hidden sm:inline">
+              {user.username}
+            </span>
+          )}
 
-        {/* Admin panel link */}
-        {user?.role === "admin" && (
+          {/* Admin panel link */}
+          {user?.role === "admin" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/admin")}
+              className="gap-1.5 text-zinc-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg h-10 px-2.5"
+            >
+              <Icon name="admin_panel_settings" size={20} />
+              <span className="hidden sm:inline text-xs font-medium">管理</span>
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/admin")}
-            className="gap-1.5 text-zinc-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg h-10 px-2.5"
+            onClick={() => router.push("/exam")}
+            className="gap-1.5 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-10 px-2.5"
           >
-            <Icon name="admin_panel_settings" size={20} />
-            <span className="hidden sm:inline text-xs font-medium">管理</span>
+            <Icon name="quiz" size={20} />
+            <span className="hidden sm:inline text-xs font-medium">模考</span>
           </Button>
-        )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenSettings}
+            className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
+          >
+            <Icon name="settings" size={20} />
+            <span className="sr-only">设置</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={openPwdChange}
+            className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
+            title="修改密码"
+          >
+            <Icon name="key" size={20} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
+          >
+            <Icon name="logout" size={20} />
+            <span className="sr-only">退出</span>
+          </Button>
+        </div>
+      </header>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/exam")}
-          className="gap-1.5 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-10 px-2.5"
-        >
-          <Icon name="quiz" size={20} />
-          <span className="hidden sm:inline text-xs font-medium">模考</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onOpenSettings}
-          className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
-        >
-          <Icon name="settings" size={20} />
-          <span className="sr-only">设置</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={openPwdChange}
-          className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
-          title="修改密码"
-        >
-          <Icon name="key" size={20} />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleLogout}
-          className="h-10 w-10 text-zinc-500 hover:text-zinc-800 rounded-lg"
-        >
-          <Icon name="logout" size={20} />
-          <span className="sr-only">退出</span>
-        </Button>
-      </div>
-
-      {/* Password change dialog */}
+      {/* Password change dialog - rendered outside header */}
       {showPwdChange && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setShowPwdChange(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
@@ -193,7 +195,7 @@ export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
                 <Button
                   onClick={handlePasswordChange}
                   disabled={!oldPwd || !newPwd || newPwd.length < 4 || pwdLoading}
-                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl h-10 text-sm"
+                  className="w-full bg-gradient-to-r from-zinc-700 to-zinc-800 hover:from-zinc-800 hover:to-zinc-900 text-white rounded-xl h-10 text-sm"
                 >
                   {pwdLoading ? "修改中…" : "确认修改"}
                 </Button>
@@ -202,6 +204,6 @@ export function Header({ onOpenSettings, onToggleSidebar }: HeaderProps) {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

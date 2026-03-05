@@ -627,7 +627,7 @@ export function SettingsModal({
                 <button
                   type="button"
                   onClick={() => setVoiceCloneOpen(true)}
-                  className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-800 transition-colors"
                 >
                   <Icon name="mic" size={14} />
                   管理自定义音色

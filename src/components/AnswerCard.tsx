@@ -213,10 +213,10 @@ export function AnswerCard({
           <div>
             {([
               { key: "answer" as const, title: "考生作答（现场口吻）", icon: "mic", defaultOpen: true },
-              { key: "review" as const, title: "作答复盘（10秒速览）", icon: "analytics", defaultOpen: true },
-              { key: "template" as const, title: "通用模板（可复用）", icon: "content_copy", defaultOpen: true },
-              { key: "pitfalls" as const, title: "踩坑提醒", icon: "warning", defaultOpen: true },
-              { key: "notes" as const, title: "注意事项", icon: "push_pin", defaultOpen: true },
+              { key: "review" as const, title: "本质锚点", icon: "analytics", defaultOpen: true },
+              { key: "template" as const, title: "柔性高分句库（可复用）", icon: "format_quote", defaultOpen: true },
+              { key: "pitfalls" as const, title: "落地动作清单（2+1）", icon: "checklist", defaultOpen: true },
+              { key: "notes" as const, title: "跑题预警线", icon: "warning", defaultOpen: true },
             ] as const).map(({ key, title: secTitle, icon: secIcon, defaultOpen: secOpen }) => (
               <AnswerSection
                 key={key}
@@ -227,6 +227,7 @@ export function AnswerCard({
                 sectionKey={key}
                 sectionMeta={answer.sectionMeta?.[key]}
                 questionContent={question.content}
+                allSections={sections}
                 settings={cardSettings}
                 onSectionUpdate={onSectionUpdate ? (c, s, i) => onSectionUpdate(key, c, s, i) : undefined}
                 onAnnotationAdd={onAnnotationAdd ? (c) => onAnnotationAdd(key, c) : undefined}
