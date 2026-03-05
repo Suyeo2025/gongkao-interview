@@ -77,15 +77,41 @@ export default function AdminPage() {
     fetchUsers();
   };
 
-  const handleResetPassword = async (id: string) => {
-    const pwd = prompt("输入新密码：");
-    if (!pwd) return;
-    await fetch(`/api/admin/users/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: pwd }),
-    });
-    alert("密码已重置");
+  // Password reset state
+  const [resetTarget, setResetTarget] = useState<{ id: string; username: string } | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetDone, setResetDone] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const generatePassword = () => {
+    const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+    let pwd = "";
+    for (let i = 0; i < 8; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    return pwd;
+  };
+
+  const openResetDialog = (id: string, username: string) => {
+    setResetTarget({ id, username });
+    setResetPassword(generatePassword());
+    setResetDone(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetTarget || !resetPassword.trim()) return;
+    setResetLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${resetTarget.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: resetPassword }),
+      });
+      if (res.ok) setResetDone(true);
+    } catch { /* ignore */ }
+    finally { setResetLoading(false); }
+  };
+
+  const copyPassword = () => {
+    navigator.clipboard.writeText(resetPassword);
   };
 
   return (
@@ -212,7 +238,7 @@ export default function AdminPage() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); handleResetPassword(u.id); }}
+                    onClick={(e) => { e.stopPropagation(); openResetDialog(u.id, u.username); }}
                     className="p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                     title="重置密码"
                   >
@@ -233,6 +259,85 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Password reset dialog */}
+      {resetTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setResetTarget(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-800">
+                重置密码 · {resetTarget.username}
+              </h3>
+              <button type="button" onClick={() => setResetTarget(null)} className="text-zinc-400 hover:text-zinc-600">
+                <Icon name="close" size={18} />
+              </button>
+            </div>
+
+            {!resetDone ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs text-zinc-500">新密码</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      placeholder="输入或生成密码"
+                      className="h-10 rounded-xl text-sm font-mono flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 rounded-xl shrink-0"
+                      onClick={() => setResetPassword(generatePassword())}
+                      title="生成随机密码"
+                    >
+                      <Icon name="casino" size={18} />
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleResetPassword}
+                  disabled={!resetPassword.trim() || resetLoading}
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl h-10 text-sm"
+                >
+                  {resetLoading ? "重置中…" : "确认重置"}
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2">
+                  <Icon name="check_circle" size={18} className="text-emerald-600 shrink-0" />
+                  <span className="text-xs text-emerald-700">密码已重置成功</span>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-500">新密码（请复制后告知用户）</label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2.5 font-mono text-sm text-zinc-800 select-all">
+                      {resetPassword}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 rounded-xl shrink-0"
+                      onClick={copyPassword}
+                      title="复制密码"
+                    >
+                      <Icon name="content_copy" size={18} />
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setResetTarget(null)}
+                  className="w-full rounded-xl h-10 text-sm"
+                >
+                  关闭
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
