@@ -4,22 +4,24 @@ import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
-import { QuestionCategory, CATEGORY_COLORS } from "@/lib/types";
+import { Textarea } from "@/components/ui/textarea";
+import { QuestionCategory, CATEGORY_COLORS, ALL_CATEGORIES, Settings } from "@/lib/types";
 
 interface ParsedQuestion {
   content: string;
   category: string | null;
   selected: boolean;
+  editing?: boolean;
 }
 
 interface FileUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  apiKey: string;
+  settings: Settings;
   onAddBatch: (items: Array<{ content: string; category?: QuestionCategory | null; sourceFile?: string }>) => void;
 }
 
-export function FileUploadDialog({ open, onOpenChange, apiKey, onAddBatch }: FileUploadDialogProps) {
+export function FileUploadDialog({ open, onOpenChange, settings, onAddBatch }: FileUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +37,12 @@ export function FileUploadDialog({ open, onOpenChange, apiKey, onAddBatch }: Fil
     }
   };
 
+  const activeApiKey = settings.textProvider === "qwen"
+    ? (settings.qwenApiKey || settings.dashscopeApiKey)
+    : settings.geminiApiKey;
+
   const handleParse = async () => {
-    if (!file || !apiKey) return;
+    if (!file || !activeApiKey) return;
     setLoading(true);
     setError(null);
 
@@ -52,7 +58,8 @@ export function FileUploadDialog({ open, onOpenChange, apiKey, onAddBatch }: Fil
         body: JSON.stringify({
           fileData: base64,
           mimeType: file.type || "application/pdf",
-          apiKey,
+          apiKey: activeApiKey,
+          provider: settings.textProvider,
         }),
       });
 
@@ -141,7 +148,7 @@ export function FileUploadDialog({ open, onOpenChange, apiKey, onAddBatch }: Fil
           {file && parsed.length === 0 && (
             <Button
               onClick={handleParse}
-              disabled={loading || !apiKey}
+              disabled={loading || !activeApiKey}
               className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl h-10 text-sm shadow-sm"
             >
               {loading ? (
@@ -158,8 +165,10 @@ export function FileUploadDialog({ open, onOpenChange, apiKey, onAddBatch }: Fil
             </Button>
           )}
 
-          {!apiKey && (
-            <p className="text-xs text-amber-600 text-center">请先在设置中配置 Gemini API Key</p>
+          {!activeApiKey && (
+            <p className="text-xs text-amber-600 text-center">
+              请先在设置中配置 {settings.textProvider === "qwen" ? "DashScope" : "Gemini"} API Key
+            </p>
           )}
 
           {error && (
@@ -189,31 +198,99 @@ export function FileUploadDialog({ open, onOpenChange, apiKey, onAddBatch }: Fil
                 {parsed.map((q, i) => (
                   <div
                     key={i}
-                    onClick={() => {
-                      const next = [...parsed];
-                      next[i] = { ...next[i], selected: !next[i].selected };
-                      setParsed(next);
-                    }}
-                    className={`flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                    className={`rounded-lg border px-3 py-2 transition-colors ${
                       q.selected ? "border-amber-200 bg-amber-50/40" : "border-zinc-100 opacity-50"
                     }`}
                   >
-                    <Icon
-                      name={q.selected ? "check_circle" : "radio_button_unchecked"}
-                      size={16}
-                      fill={q.selected}
-                      className={`shrink-0 mt-0.5 ${q.selected ? "text-amber-500" : "text-zinc-300"}`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-zinc-700 leading-relaxed">{q.content}</p>
-                      {q.category && (
-                        <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                          CATEGORY_COLORS[q.category as keyof typeof CATEGORY_COLORS] || "bg-zinc-50 text-zinc-500 border-zinc-200"
-                        }`}>
-                          {q.category}
-                        </span>
-                      )}
-                    </div>
+                    {q.editing ? (
+                      /* Editing mode */
+                      <div className="space-y-2">
+                        <Textarea
+                          value={q.content}
+                          onChange={(e) => {
+                            const next = [...parsed];
+                            next[i] = { ...next[i], content: e.target.value };
+                            setParsed(next);
+                          }}
+                          className="text-xs min-h-[60px] resize-none focus-visible:ring-amber-200"
+                          autoFocus
+                        />
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {ALL_CATEGORIES.map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => {
+                                const next = [...parsed];
+                                next[i] = { ...next[i], category: q.category === cat ? null : cat };
+                                setParsed(next);
+                              }}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                                q.category === cat
+                                  ? CATEGORY_COLORS[cat]
+                                  : "bg-zinc-50 text-zinc-400 border-zinc-200 hover:bg-zinc-100"
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...parsed];
+                              next[i] = { ...next[i], editing: false };
+                              setParsed(next);
+                            }}
+                            className="p-1 rounded-lg text-amber-600 hover:bg-amber-50"
+                            title="完成编辑"
+                          >
+                            <Icon name="check" size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Display mode */
+                      <div
+                        className="flex items-start gap-2 cursor-pointer"
+                        onClick={() => {
+                          const next = [...parsed];
+                          next[i] = { ...next[i], selected: !next[i].selected };
+                          setParsed(next);
+                        }}
+                      >
+                        <Icon
+                          name={q.selected ? "check_circle" : "radio_button_unchecked"}
+                          size={16}
+                          fill={q.selected}
+                          className={`shrink-0 mt-0.5 ${q.selected ? "text-amber-500" : "text-zinc-300"}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-zinc-700 leading-relaxed">{q.content}</p>
+                          {q.category && (
+                            <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                              CATEGORY_COLORS[q.category as keyof typeof CATEGORY_COLORS] || "bg-zinc-50 text-zinc-500 border-zinc-200"
+                            }`}>
+                              {q.category}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const next = [...parsed];
+                            next[i] = { ...next[i], editing: true };
+                            setParsed(next);
+                          }}
+                          className="p-1 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 shrink-0 transition-all"
+                          title="编辑"
+                        >
+                          <Icon name="edit" size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

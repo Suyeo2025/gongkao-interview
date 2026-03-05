@@ -39,6 +39,16 @@ yarn-error.log*
 # TTS audio cache
 .tts-cache
 
+# Custom voice audio files (keep voices.json, ignore binaries)
+.custom-voices/*.m4a
+.custom-voices/*.mp3
+.custom-voices/*.wav
+.custom-voices/*.ogg
+
+# SQLite database
+*.db
+*.db-journal
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

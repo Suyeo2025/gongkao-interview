@@ -10,16 +10,43 @@ export function useQuestions() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setHistory(getHistory());
+    // 1. Fast load from localStorage
+    const local = getHistory();
+    setHistory(local);
     setLoaded(true);
+
+    // 2. Hydrate from server
+    fetch("/api/data/history")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setHistory(data);
+          saveHistory(data);
+        } else if (local.length > 0) {
+          // Server has no data but localStorage does — push all to server
+          for (const pair of local) {
+            fetch("/api/data/history", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(pair),
+            }).catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const addPair = useCallback((pair: QAPair) => {
     setHistory((prev) => {
-      // Prevent duplicate question.id
       if (prev.some((p) => p.question.id === pair.question.id)) return prev;
       const next = [pair, ...prev];
       saveHistory(next);
+      // Server sync
+      fetch("/api/data/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pair),
+      }).catch(() => {});
       return next;
     });
   }, []);
@@ -31,6 +58,15 @@ export function useQuestions() {
           p.question.id === questionId ? updater(p) : p
         );
         saveHistory(next);
+        // Server sync: update the modified pair
+        const updated = next.find((p) => p.question.id === questionId);
+        if (updated) {
+          fetch("/api/data/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated),
+          }).catch(() => {});
+        }
         return next;
       });
     },
@@ -39,12 +75,17 @@ export function useQuestions() {
 
   const removePair = useCallback((questionId: string) => {
     setHistory((prev) => {
-      // Clean up TTS cache for the deleted answer
       const pair = prev.find((p) => p.question.id === questionId);
       if (pair) {
         deleteCachedAudio(pair.answer.id).catch(() => {});
       }
       const next = deleteQAPair(questionId);
+      // Server sync
+      fetch("/api/data/history", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: questionId }),
+      }).catch(() => {});
       return next;
     });
   }, []);

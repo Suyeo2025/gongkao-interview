@@ -32,6 +32,42 @@ export default function LoginPage() {
           return;
         }
 
+        // Store user info for client-side context
+        if (data.user) {
+          localStorage.setItem("gongkao_user", JSON.stringify(data.user));
+        }
+
+        // Auto-migrate localStorage data to server on login
+        try {
+          const migrationData: Record<string, unknown> = {};
+          const keys = [
+            ["gongkao_settings", "settings"],
+            ["gongkao_history", "history"],
+            ["gongkao_question_bank", "questionBank"],
+            ["gongkao_exam_papers", "examPapers"],
+            ["gongkao_exam_sessions", "examSessions"],
+            ["gongkao_mentor_evals", "mentorEvals"],
+          ] as const;
+          for (const [lsKey, bodyKey] of keys) {
+            const raw = localStorage.getItem(lsKey);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed && (Array.isArray(parsed) ? parsed.length > 0 : Object.keys(parsed).length > 0)) {
+                migrationData[bodyKey] = parsed;
+              }
+            }
+          }
+          if (Object.keys(migrationData).length > 0) {
+            await fetch("/api/data/migrate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(migrationData),
+            });
+          }
+        } catch {
+          // Migration is best-effort
+        }
+
         router.push("/");
         router.refresh();
       } catch {

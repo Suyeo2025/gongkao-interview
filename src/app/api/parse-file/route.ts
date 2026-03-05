@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 
 export const runtime = "nodejs";
 
@@ -16,36 +17,69 @@ const PARSE_PROMPT = `你是一个面试题提取助手。请从以下文档中�
 如果无法判断类别，category 设为 null。
 如果文档中没有找到面试题目，返回空数组 []。`;
 
+async function parseGemini(fileData: string, mimeType: string, apiKey: string): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { inlineData: { data: fileData, mimeType: mimeType || "application/pdf" } },
+          { text: PARSE_PROMPT },
+        ],
+      },
+    ],
+    config: { temperature: 0.1 },
+  });
+  return response.text?.trim() || "[]";
+}
+
+async function parseQwen(fileData: string, mimeType: string, apiKey: string): Promise<string> {
+  const client = new OpenAI({
+    apiKey,
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  });
+
+  const dataUrl = `data:${mimeType};base64,${fileData}`;
+  const isImage = mimeType.startsWith("image/");
+
+  // qwen-vl-max supports both image and PDF multimodal input
+  const content: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [];
+  if (isImage) {
+    content.push({ type: "image_url", image_url: { url: dataUrl } });
+  } else {
+    // For PDF/documents, pass as image_url with the data URI (DashScope supports this)
+    content.push({ type: "image_url", image_url: { url: dataUrl } });
+  }
+  content.push({ type: "text", text: PARSE_PROMPT });
+
+  const response = await client.chat.completions.create({
+    model: "qwen-vl-max",
+    messages: [{ role: "user", content }],
+    temperature: 0.1,
+  });
+
+  return response.choices[0]?.message?.content?.trim() || "[]";
+}
+
 export async function POST(req: Request) {
   try {
-    const { fileData, mimeType, apiKey } = await req.json();
+    const { fileData, mimeType, apiKey, provider } = await req.json();
 
     if (!apiKey) {
-      return Response.json({ error: "请先配置 Gemini API Key" }, { status: 400 });
+      return Response.json(
+        { error: `请先在设置中配置 ${provider === "qwen" ? "DashScope" : "Gemini"} API Key` },
+        { status: 400 }
+      );
     }
     if (!fileData) {
       return Response.json({ error: "缺少文件数据" }, { status: 400 });
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { inlineData: { data: fileData, mimeType: mimeType || "application/pdf" } },
-            { text: PARSE_PROMPT },
-          ],
-        },
-      ],
-      config: {
-        temperature: 0.1,
-      },
-    });
-
-    const text = response.text?.trim() || "[]";
+    const text = provider === "qwen"
+      ? await parseQwen(fileData, mimeType || "application/pdf", apiKey)
+      : await parseGemini(fileData, mimeType || "application/pdf", apiKey);
 
     // Strip markdown fences if present
     const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();

@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
+import { UserProvider, UserInfo } from "@/lib/user-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,11 +17,30 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+async function getUser(): Promise<UserInfo | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("gongkao_auth")?.value;
+    if (!token) return null;
+    const secret = process.env.AUTH_SECRET || "UriM4dBv+Mhmd8i/EboKr5vuzDVa76my+K/f4PCju4U=";
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    return {
+      id: payload.userId as string,
+      username: payload.username as string,
+      role: payload.role as "admin" | "member",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getUser();
+
   return (
     <html lang="zh-CN">
       <head>
@@ -28,7 +50,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased font-sans">
-        {children}
+        <UserProvider initial={user}>
+          {children}
+        </UserProvider>
       </body>
     </html>
   );

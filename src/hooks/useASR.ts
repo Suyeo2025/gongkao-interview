@@ -101,7 +101,9 @@ export function useASR() {
       mediaStreamRef.current = stream;
 
       // 2. Open SSE connection to server (this opens DashScope WebSocket on server)
-      const sseRes = await fetch(`/api/asr?apiKey=${encodeURIComponent(apiKey)}`);
+      const sseRes = await fetch("/api/asr", {
+        headers: { "X-Api-Key": apiKey },
+      });
       if (!sseRes.ok || !sseRes.body) {
         throw new Error("无法建立 ASR 连接");
       }
