@@ -75,9 +75,8 @@ export function useExamSession() {
         setTimerSeconds(firstQ.timeLimit);
       }
     }
-    setIsTimerRunning(true);
-    questionStartRef.current = new Date().toISOString();
-    questionStartTimeRef.current = Date.now();
+    // Timer starts paused — ExamSimulation will call resumeTimer() when ASR is connected
+    setIsTimerRunning(false);
   }, []);
 
   const getCurrentQuestion = useCallback(() => {
@@ -176,15 +175,12 @@ export function useExamSession() {
         setPhase("answering");
 
         if (mode === "practice") {
-          // Practice: reset timer to next question's time limit
+          // Practice: reset timer to next question's time limit, paused until mic connects
           const nextQ = paper.questions[nextIdx];
           setTimerSeconds(nextQ.timeLimit);
-          setIsTimerRunning(true);
+          setIsTimerRunning(false);
         }
         // Exam mode: timer keeps running (global countdown), don't reset
-
-        questionStartRef.current = new Date().toISOString();
-        questionStartTimeRef.current = Date.now();
       }
     },
     []
@@ -279,6 +275,11 @@ export function useExamSession() {
     [session]
   );
 
+  const markQuestionStart = useCallback(() => {
+    questionStartRef.current = new Date().toISOString();
+    questionStartTimeRef.current = Date.now();
+  }, []);
+
   const exitExam = useCallback(() => {
     setSession(null);
     setPhase("idle");
@@ -308,6 +309,7 @@ export function useExamSession() {
     pauseTimer,
     resumeTimer,
     toggleTimerVisibility,
+    markQuestionStart,
     finishExam,
     exitExam,
     setSession,

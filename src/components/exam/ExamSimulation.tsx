@@ -42,6 +42,7 @@ export function ExamSimulation({
     pauseTimer,
     resumeTimer,
     toggleTimerVisibility,
+    markQuestionStart,
     finishExam,
     exitExam,
   } = useExamSession();
@@ -65,6 +66,17 @@ export function ExamSimulation({
     startExam(paper, mode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Start/resume timer when ASR microphone is connected
+  useEffect(() => {
+    if (asrStatus === "recording" && phase === "answering" && !isPaused) {
+      if (!isTimerRunning) {
+        markQuestionStart();
+        resumeTimer();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asrStatus]);
 
   // Timer expired handling
   useEffect(() => {
