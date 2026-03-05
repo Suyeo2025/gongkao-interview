@@ -92,7 +92,11 @@ export default function ExamPage() {
   const handleExamFinished = useCallback((session: ExamSession | null) => {
     setFinishedSession(session);
     setExamActive(null);
-  }, []);
+    // Auto-trigger AI evaluation
+    if (session && session.answers.length > 0) {
+      evaluate(session.answers, settings);
+    }
+  }, [evaluate, settings]);
 
   const handleEvaluate = useCallback(() => {
     if (!finishedSession) return;
@@ -266,7 +270,7 @@ export default function ExamPage() {
       {/* Evaluation overlay after exam */}
       {finishedSession && !examActive && (
         <div className="fixed inset-0 z-40 bg-black/50 flex items-start justify-center overflow-y-auto py-4 sm:py-8 px-3 sm:px-4">
-          <div className="bg-gradient-to-b from-white via-white to-amber-50/30 rounded-2xl shadow-2xl w-full max-w-2xl p-4 sm:p-5 border-t-2 border-amber-400">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-4 sm:p-5 border border-zinc-200/60">
             <ExamEvaluationView
               session={finishedSession}
               evaluations={evaluations}

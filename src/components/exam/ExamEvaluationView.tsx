@@ -68,7 +68,7 @@ function EvalTTSButton({
 
   if (isActive && ttsStatus === "loading") {
     return (
-      <button type="button" disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-purple-600 bg-purple-50 cursor-wait">
+      <button type="button" disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-500 bg-zinc-50 cursor-wait">
         <Icon name="progress_activity" size={14} className="animate-spin" />
         合成中…
       </button>
@@ -108,7 +108,7 @@ function EvalTTSButton({
   return (
     <button type="button"
       onClick={() => onSpeak(evalId, buildEvalSpeechText(evalResult))}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-600 hover:text-zinc-700 bg-zinc-50 hover:bg-zinc-100 transition-colors">
       <Icon name="volume_up" size={14} />
       朗读评语
     </button>
@@ -151,7 +151,7 @@ export function ExamEvaluationView({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
             <Icon name="rate_review" size={18} className="text-white" />
           </div>
           <div>
@@ -173,7 +173,7 @@ export function ExamEvaluationView({
 
       {/* Score summary */}
       {totalScore !== null && (
-        <div className="text-center py-4 rounded-xl bg-gradient-to-br from-zinc-50 to-zinc-100/50 border border-amber-200/50">
+        <div className="text-center py-4 rounded-xl bg-zinc-50/80 border border-zinc-200/50">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1">综合得分</p>
           <p
             className={`text-4xl font-bold ${
@@ -195,7 +195,7 @@ export function ExamEvaluationView({
         <button
           type="button"
           onClick={onEvaluate}
-          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
+          className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
         >
           <Icon name="auto_awesome" size={16} />
           AI 评估作答
@@ -206,7 +206,7 @@ export function ExamEvaluationView({
       {isEvaluating && (
         <div className="rounded-xl border border-zinc-200/60 bg-white p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Icon name="progress_activity" size={16} className="text-purple-500 animate-spin" />
+            <Icon name="progress_activity" size={16} className="text-zinc-500 animate-spin" />
             <span className="text-xs text-zinc-500">导师正在认真审阅你的作答…</span>
           </div>
           {streamText && (
@@ -243,7 +243,7 @@ export function ExamEvaluationView({
                   onClick={() => setExpandedIdx(isExpanded ? null : i)}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-zinc-50/50 transition-colors"
                 >
-                  <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center shrink-0 shadow-sm">
+                  <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-700 text-[10px] font-bold flex items-center justify-center shrink-0 shadow-sm">
                     {i + 1}
                   </span>
                   <p className="flex-1 text-xs text-zinc-700 line-clamp-1">
@@ -281,8 +281,8 @@ export function ExamEvaluationView({
                         {/* Full mentor commentary (verbal evaluation outside eval block) */}
                         {evalResult.fullCommentary && (
                           <div>
-                            <p className="text-[10px] text-purple-600 font-medium mb-1">导师完整点评</p>
-                            <div className="text-xs text-zinc-700 leading-relaxed bg-purple-50/40 rounded-lg px-3 py-2 whitespace-pre-wrap">
+                            <p className="text-[10px] text-zinc-500 font-medium mb-1">导师完整点评</p>
+                            <div className="text-xs text-zinc-700 leading-relaxed bg-zinc-50 rounded-lg px-3 py-2 whitespace-pre-wrap">
                               {evalResult.fullCommentary}
                             </div>
                           </div>
@@ -369,7 +369,7 @@ export function ExamEvaluationView({
           className={`w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm ${
             savedToHistory
               ? "bg-zinc-100 text-zinc-400 cursor-default"
-              : "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+              : "bg-zinc-800 hover:bg-zinc-700 text-white"
           }`}
         >
           <Icon name={savedToHistory ? "check_circle" : "save"} size={16} />
