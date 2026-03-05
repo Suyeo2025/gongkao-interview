@@ -503,8 +503,8 @@ function HomeInner() {
                 /* Empty state */
                 !isGenerating && (
                   <div className="text-center py-10 sm:py-14 lg:py-20">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                      <span className="text-xl sm:text-2xl">🎯</span>
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                      <img src="/logo.svg" alt="" className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20" />
                     </div>
                     <h3 className="text-sm sm:text-base font-semibold text-zinc-700 mb-1.5 sm:mb-2">
                       开始你的面试模拟
