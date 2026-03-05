@@ -2,6 +2,9 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 interface MarkdownRendererProps {
   content: string;
@@ -12,7 +15,8 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
   return (
     <div className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           h1: ({ children }) => (
             <h1 className="text-base font-bold mt-4 mb-2 text-zinc-800">{children}</h1>
