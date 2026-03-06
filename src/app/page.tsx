@@ -395,7 +395,7 @@ function HomeInner() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar — hidden on mobile */}
-        <div className="hidden lg:block w-72 shrink-0">
+        <div className="hidden lg:block w-72 shrink-0 h-full overflow-hidden">
           {sidebarContent}
         </div>
 

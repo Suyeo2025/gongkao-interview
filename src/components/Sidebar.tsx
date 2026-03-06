@@ -134,7 +134,7 @@ export function Sidebar({
       </div>
 
       {/* Category list */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-2">
           {filterCategory === "all" || filterCategory === "favorites" ? (
             ALL_CATEGORIES.map((cat) => {
